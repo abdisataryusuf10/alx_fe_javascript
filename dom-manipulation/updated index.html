@@ -1,0 +1,38 @@
+<!-- In the export-section, add this after the existing buttons -->
+<div class="export-section">
+    <h2>Export & Import Quotes</h2>
+    <div class="controls">
+        <button id="exportJSON">Export as JSON</button>
+        <button id="exportCSV">Export as CSV</button>
+        <button onclick="clearAllData()" style="background-color: #dc3545;">Clear All Data</button>
+    </div>
+    
+    <div class="input-group">
+        <h3>Import from JSON File</h3>
+        <input type="file" id="importFile" accept=".json" onchange="importFromJsonFile(event)" />
+        <p style="font-size: 0.9rem; color: #666; margin-top: 5px;">
+            Select a JSON file containing quotes in the format: [{"text":"Quote text","category":"Category"}]
+        </p>
+    </div>
+    
+    <div class="input-group">
+        <h3>Import from JSON Text</h3>
+        <label for="importData">Paste JSON data:</label>
+        <textarea id="importData" placeholder='Paste JSON data here: [{"text":"Your quote","category":"Category"}]'></textarea>
+        <button id="processImport">Import Quotes</button>
+    </div>
+    
+    <div class="storage-info">
+        <h3>Storage Information</h3>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="localStorageUsage">0 KB</div>
+                <div class="stat-label">Local Storage Used</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="sessionStorageUsage">0 KB</div>
+                <div class="stat-label">Session Storage Used</div>
+            </div>
+        </div>
+    </div>
+</div>
