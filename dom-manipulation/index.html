@@ -1,37 +1,52 @@
-<!-- In the export-section, add this after the existing buttons -->
+<!-- In the export-section, replace the entire section with this: -->
 <div class="export-section">
     <h2>Export & Import Quotes</h2>
-    <div class="controls">
-        <button id="exportJSON">Export as JSON</button>
-        <button id="exportCSV">Export as CSV</button>
-        <button onclick="clearAllData()" style="background-color: #dc3545;">Clear All Data</button>
-    </div>
     
+    <!-- Section 1: Export Quotes Button -->
     <div class="input-group">
-        <h3>Import from JSON File</h3>
-        <input type="file" id="importFile" accept=".json" onchange="importFromJsonFile(event)" />
+        <h3>Export Quotes</h3>
+        <button id="exportQuotes">Export Quotes</button>
         <p style="font-size: 0.9rem; color: #666; margin-top: 5px;">
-            Select a JSON file containing quotes in the format: [{"text":"Quote text","category":"Category"}]
+            Download all your quotes as a JSON file.
         </p>
     </div>
-    
+
+    <!-- Section 2: Export to JSON File Functionality -->
     <div class="input-group">
-        <h3>Import from JSON Text</h3>
-        <label for="importData">Paste JSON data:</label>
-        <textarea id="importData" placeholder='Paste JSON data here: [{"text":"Your quote","category":"Category"}]'></textarea>
-        <button id="processImport">Import Quotes</button>
+        <h3>Quick Export</h3>
+        <button onclick="exportToJsonFile()">Export to JSON File</button>
+        <p style="font-size: 0.9rem; color: #666; margin-top: 5px;">
+            One-click export to download quotes as JSON.
+        </p>
     </div>
-    
+
+    <!-- Section 3: Import Quotes File Input -->
+    <div class="input-group">
+        <h3>Import Quotes</h3>
+        <input type="file" id="importQuotesFile" accept=".json" onchange="importFromJsonFile(event)" />
+        <p style="font-size: 0.9rem; color: #666; margin-top: 5px;">
+            Select a JSON file to import quotes.
+        </p>
+    </div>
+
+    <!-- Section 4: Import from JSON File Function Display -->
+    <div class="input-group">
+        <h3>Manual Import</h3>
+        <label for="importJsonText">Or paste JSON data:</label>
+        <textarea id="importJsonText" placeholder='[{"text":"Your quote","category":"Category"}]'></textarea>
+        <button onclick="importFromJsonManual()">Import from JSON</button>
+    </div>
+
     <div class="storage-info">
-        <h3>Storage Information</h3>
+        <h3>Storage Status</h3>
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="stat-number" id="localStorageUsage">0 KB</div>
-                <div class="stat-label">Local Storage Used</div>
+                <div class="stat-number" id="storedQuotes">0</div>
+                <div class="stat-label">Quotes Saved</div>
             </div>
             <div class="stat-card">
-                <div class="stat-number" id="sessionStorageUsage">0 KB</div>
-                <div class="stat-label">Session Storage Used</div>
+                <div class="stat-number" id="storageSize">0 KB</div>
+                <div class="stat-label">Storage Used</div>
             </div>
         </div>
     </div>
