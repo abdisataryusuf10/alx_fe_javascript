@@ -1,61 +1,596 @@
-<!-- In the export-section, replace the entire section with this: -->
-<div class="export-section">
-    <h2>Export & Import Quotes</h2>
-    
-    <!-- Section 1: Export Quotes Button -->
-    <div class="input-group">
-        <h3>Export Quotes</h3>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Quote Generator with Storage</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            padding: 30px;
+            overflow: hidden;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            color: #2575fc;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+        }
+        
+        .subtitle {
+            color: #6a11cb;
+            font-size: 1.2rem;
+        }
+        
+        .quote-display {
+            background-color: #f8f9fa;
+            border-left: 5px solid #2575fc;
+            padding: 25px;
+            margin: 25px 0;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            min-height: 180px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .quote-text {
+            font-size: 1.5rem;
+            font-style: italic;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+        
+        .quote-author {
+            text-align: right;
+            font-weight: bold;
+            color: #6a11cb;
+            font-size: 1.2rem;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        button {
+            background: linear-gradient(to right, #6a11cb, #2575fc);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            flex: 1;
+            min-width: 150px;
+        }
+        
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        button:active {
+            transform: translateY(1px);
+        }
+        
+        .storage-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin: 25px 0;
+        }
+        
+        .storage-controls button {
+            flex: 1;
+            min-width: 180px;
+        }
+        
+        #exportBtn {
+            background: linear-gradient(to right, #11998e, #38ef7d);
+        }
+        
+        #importBtn {
+            background: linear-gradient(to right, #ff416c, #ff4b2b);
+        }
+        
+        #clearBtn {
+            background: linear-gradient(to right, #ff5e62, #ff9966);
+        }
+        
+        .form-group {
+            margin: 20px 0;
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e5ee;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+            margin-bottom: 10px;
+        }
+        
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #2575fc;
+        }
+        
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+        }
+        
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+        
+        .file-input-button {
+            display: block;
+            padding: 12px 20px;
+            background: linear-gradient(to right, #ff416c, #ff4b2b);
+            color: white;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 25px;
+            padding-top: 15px;
+            border-top: 1px solid #e1e5ee;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .stat-item {
+            text-align: center;
+            flex: 1;
+            min-width: 120px;
+        }
+        
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #2575fc;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            transform: translateX(150%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .notification.error {
+            background-color: #f44336;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .controls, .storage-controls {
+                flex-direction: column;
+            }
+            
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Dynamic Quote Generator</h1>
+            <p class="subtitle">Store, manage, and share your favorite quotes</p>
+        </header>
+        
+        <div class="quote-display">
+            <p class="quote-text" id="quoteText">Click "New Quote" to get started!</p>
+            <p class="quote-author" id="quoteAuthor"></p>
+        </div>
+        
         <div class="controls">
-            <button id="exportJSON">Export as JSON</button>
-            <button id="exportCSV">Export as CSV</button>
+            <button id="newQuoteBtn">New Quote</button>
+            <button id="addQuoteBtn">Add New Quote</button>
+            <button id="savePrefBtn">Save Preference</button>
         </div>
-        <p style="font-size: 0.9rem; color: #666; margin-top: 5px;">
-            Download all your quotes in JSON or CSV format for backup or sharing.
-        </p>
-    </div>
-
-    <!-- Section 2: Export to JSON File Functionality -->
-    <div class="input-group">
-        <h3>Quick Export to JSON File</h3>
-        <button id="exportToJsonFile">Export Quotes to JSON File</button>
-        <p style="font-size: 0.9rem; color: #666; margin-top: 5px;">
-            One-click export to download all quotes as a JSON file.
-        </p>
-    </div>
-
-    <!-- Section 3: Import Quotes File Input -->
-    <div class="input-group">
-        <h3>Import from JSON File</h3>
-        <input type="file" id="importFile" accept=".json" />
-        <p style="font-size: 0.9rem; color: #666; margin-top: 5px;">
-            Select a JSON file containing quotes in the format: [{"text":"Quote text","category":"Category"}]
-        </p>
-    </div>
-
-    <!-- Section 4: Import from JSON File Function -->
-    <div class="input-group">
-        <h3>Advanced Import</h3>
-        <label for="importData">Paste JSON data or use file upload above:</label>
-        <textarea id="importData" placeholder='Paste JSON data here: [{"text":"Your quote","category":"Category"}]'></textarea>
-        <button id="processImport">Import Quotes from Text</button>
-    </div>
-
-    <div class="storage-info">
-        <h3>Storage Information</h3>
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-number" id="localStorageUsage">0 KB</div>
-                <div class="stat-label">Local Storage Used</div>
+        
+        <div class="form-group" id="addQuoteForm" style="display: none;">
+            <h3>Add New Quote</h3>
+            <textarea id="newQuoteText" placeholder="Enter your quote here..."></textarea>
+            <input type="text" id="newQuoteAuthor" placeholder="Author name">
+            <button id="submitQuoteBtn">Submit Quote</button>
+        </div>
+        
+        <div class="storage-controls">
+            <button id="exportBtn">Export Quotes (JSON)</button>
+            <div class="file-input-wrapper">
+                <div class="file-input-button">Import Quotes (JSON)</div>
+                <input type="file" id="importFile" accept=".json">
             </div>
-            <div class="stat-card">
-                <div class="stat-number" id="sessionStorageUsage">0 KB</div>
-                <div class="stat-label">Session Storage Used</div>
+            <button id="clearBtn">Clear All Quotes</button>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-value" id="totalQuotes">0</div>
+                <div class="stat-label">Total Quotes</div>
             </div>
-            <div class="stat-card">
-                <div class="stat-number" id="totalQuotesCount">0</div>
-                <div class="stat-label">Quotes Stored</div>
+            <div class="stat-item">
+                <div class="stat-value" id="localQuotes">0</div>
+                <div class="stat-label">Local Storage</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="sessionQuotes">0</div>
+                <div class="stat-label">Session Storage</div>
             </div>
         </div>
-        <button onclick="clearAllData()" style="background-color: #dc3545; margin-top: 15px;">Clear All Data</button>
     </div>
-</div>
+    
+    <div class="notification" id="notification"></div>
+
+    <script>
+        // DOM Elements
+        const quoteTextElement = document.getElementById('quoteText');
+        const quoteAuthorElement = document.getElementById('quoteAuthor');
+        const newQuoteBtn = document.getElementById('newQuoteBtn');
+        const addQuoteBtn = document.getElementById('addQuoteBtn');
+        const savePrefBtn = document.getElementById('savePrefBtn');
+        const addQuoteForm = document.getElementById('addQuoteForm');
+        const newQuoteText = document.getElementById('newQuoteText');
+        const newQuoteAuthor = document.getElementById('newQuoteAuthor');
+        const submitQuoteBtn = document.getElementById('submitQuoteBtn');
+        const exportBtn = document.getElementById('exportBtn');
+        const importFile = document.getElementById('importFile');
+        const clearBtn = document.getElementById('clearBtn');
+        const totalQuotesElement = document.getElementById('totalQuotes');
+        const localQuotesElement = document.getElementById('localQuotes');
+        const sessionQuotesElement = document.getElementById('sessionQuotes');
+        const notification = document.getElementById('notification');
+
+        // Initial quotes array
+        let quotes = [
+            {
+                text: "The only way to do great work is to love what you do.",
+                author: "Steve Jobs"
+            },
+            {
+                text: "Innovation distinguishes between a leader and a follower.",
+                author: "Steve Jobs"
+            },
+            {
+                text: "Your time is limited, so don't waste it living someone else's life.",
+                author: "Steve Jobs"
+            },
+            {
+                text: "Stay hungry, stay foolish.",
+                author: "Steve Jobs"
+            },
+            {
+                text: "The future belongs to those who believe in the beauty of their dreams.",
+                author: "Eleanor Roosevelt"
+            }
+        ];
+
+        // Initialize the application
+        function init() {
+            // Load quotes from localStorage if available
+            loadQuotesFromStorage();
+            
+            // Display initial quote
+            displayRandomQuote();
+            
+            // Update stats
+            updateStats();
+            
+            // Set up event listeners
+            setupEventListeners();
+        }
+
+        // Load quotes from localStorage
+        function loadQuotesFromStorage() {
+            const storedQuotes = localStorage.getItem('quotes');
+            if (storedQuotes) {
+                quotes = JSON.parse(storedQuotes);
+                showNotification('Quotes loaded from local storage!');
+            }
+            
+            // Load last viewed quote from sessionStorage
+            const lastQuote = sessionStorage.getItem('lastQuote');
+            if (lastQuote) {
+                const quote = JSON.parse(lastQuote);
+                quoteTextElement.textContent = `"${quote.text}"`;
+                quoteAuthorElement.textContent = `- ${quote.author}`;
+            }
+        }
+
+        // Save quotes to localStorage
+        function saveQuotesToStorage() {
+            localStorage.setItem('quotes', JSON.stringify(quotes));
+            updateStats();
+        }
+
+        // Save last viewed quote to sessionStorage
+        function saveLastQuoteToSession(quote) {
+            sessionStorage.setItem('lastQuote', JSON.stringify(quote));
+            updateStats();
+        }
+
+        // Display a random quote
+        function displayRandomQuote() {
+            if (quotes.length === 0) {
+                quoteTextElement.textContent = "No quotes available. Add some quotes!";
+                quoteAuthorElement.textContent = "";
+                return;
+            }
+            
+            const randomIndex = Math.floor(Math.random() * quotes.length);
+            const quote = quotes[randomIndex];
+            
+            quoteTextElement.textContent = `"${quote.text}"`;
+            quoteAuthorElement.textContent = `- ${quote.author}`;
+            
+            // Save to session storage
+            saveLastQuoteToSession(quote);
+        }
+
+        // Add a new quote
+        function addNewQuote() {
+            const text = newQuoteText.value.trim();
+            const author = newQuoteAuthor.value.trim();
+            
+            if (!text) {
+                showNotification('Please enter a quote!', true);
+                return;
+            }
+            
+            if (!author) {
+                showNotification('Please enter an author!', true);
+                return;
+            }
+            
+            const newQuote = {
+                text: text,
+                author: author
+            };
+            
+            quotes.push(newQuote);
+            saveQuotesToStorage();
+            
+            // Reset form
+            newQuoteText.value = '';
+            newQuoteAuthor.value = '';
+            addQuoteForm.style.display = 'none';
+            
+            showNotification('Quote added successfully!');
+            displayRandomQuote();
+        }
+
+        // Export quotes to JSON file
+        function exportToJsonFile() {
+            if (quotes.length === 0) {
+                showNotification('No quotes to export!', true);
+                return;
+            }
+            
+            const dataStr = JSON.stringify(quotes, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(dataBlob);
+            link.download = 'quotes.json';
+            link.click();
+            
+            showNotification('Quotes exported successfully!');
+        }
+
+        // Import quotes from JSON file
+        function importFromJsonFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedQuotes = JSON.parse(e.target.result);
+                    
+                    if (!Array.isArray(importedQuotes)) {
+                        throw new Error('Invalid JSON format');
+                    }
+                    
+                    // Validate each quote has text and author
+                    for (let quote of importedQuotes) {
+                        if (!quote.text || !quote.author) {
+                            throw new Error('Invalid quote format in JSON');
+                        }
+                    }
+                    
+                    quotes.push(...importedQuotes);
+                    saveQuotesToStorage();
+                    displayRandomQuote();
+                    
+                    showNotification('Quotes imported successfully!');
+                    
+                    // Reset file input
+                    event.target.value = '';
+                } catch (error) {
+                    showNotification('Error importing quotes: ' + error.message, true);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // Clear all quotes
+        function clearAllQuotes() {
+            if (quotes.length === 0) {
+                showNotification('No quotes to clear!', true);
+                return;
+            }
+            
+            if (confirm('Are you sure you want to clear all quotes?')) {
+                quotes = [];
+                localStorage.removeItem('quotes');
+                sessionStorage.removeItem('lastQuote');
+                updateStats();
+                displayRandomQuote();
+                showNotification('All quotes cleared!');
+            }
+        }
+
+        // Save user preference (last viewed quote) to session storage
+        function saveUserPreference() {
+            const currentQuoteText = quoteTextElement.textContent.replace(/"/g, '');
+            const currentQuoteAuthor = quoteAuthorElement.textContent.replace(/- /g, '');
+            
+            if (currentQuoteText && currentQuoteAuthor) {
+                const currentQuote = {
+                    text: currentQuoteText,
+                    author: currentQuoteAuthor
+                };
+                
+                saveLastQuoteToSession(currentQuote);
+                showNotification('Preference saved to session!');
+            } else {
+                showNotification('No quote to save as preference!', true);
+            }
+        }
+
+        // Update statistics display
+        function updateStats() {
+            totalQuotesElement.textContent = quotes.length;
+            
+            // Count quotes in localStorage
+            const storedQuotes = localStorage.getItem('quotes');
+            const localCount = storedQuotes ? JSON.parse(storedQuotes).length : 0;
+            localQuotesElement.textContent = localCount;
+            
+            // Check if there's a quote in sessionStorage
+            const sessionQuote = sessionStorage.getItem('lastQuote');
+            sessionQuotesElement.textContent = sessionQuote ? 1 : 0;
+        }
+
+        // Show notification
+        function showNotification(message, isError = false) {
+            notification.textContent = message;
+            notification.className = 'notification';
+            
+            if (isError) {
+                notification.classList.add('error');
+            }
+            
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Set up event listeners
+        function setupEventListeners() {
+            newQuoteBtn.addEventListener('click', displayRandomQuote);
+            
+            addQuoteBtn.addEventListener('click', () => {
+                addQuoteForm.style.display = addQuoteForm.style.display === 'none' ? 'block' : 'none';
+            });
+            
+            submitQuoteBtn.addEventListener('click', addNewQuote);
+            
+            savePrefBtn.addEventListener('click', saveUserPreference);
+            
+            exportBtn.addEventListener('click', exportToJsonFile);
+            
+            importFile.addEventListener('change', importFromJsonFile);
+            
+            clearBtn.addEventListener('click', clearAllQuotes);
+            
+            // Allow Enter key to submit new quote
+            newQuoteText.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    addNewQuote();
+                }
+            });
+            
+            newQuoteAuthor.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addNewQuote();
+                }
+            });
+        }
+
+        // Initialize the application when DOM is loaded
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
