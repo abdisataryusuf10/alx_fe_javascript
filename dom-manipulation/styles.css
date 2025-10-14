@@ -1,34 +1,67 @@
-.quote-actions {
+.filter-section, .persistence-section, .quick-filters, .filter-stats {
+    background-color: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    border-left: 4px solid #2575fc;
+}
+
+.filter-section h3, .persistence-section h3, .quick-filters h3, .filter-stats h3 {
+    margin-bottom: 15px;
+    color: #2575fc;
+    font-size: 1.1rem;
+}
+
+.filter-controls, .persistence-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.quick-filter-buttons {
     display: flex;
     gap: 8px;
+    flex-wrap: wrap;
+}
+
+.quick-filter-btn {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.quick-filter-btn:hover {
+    background-color: #5a6268;
+    transform: translateY(-1px);
+}
+
+.quick-filter-btn.all-btn {
+    background-color: #2575fc;
+}
+
+.stat-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.no-quotes-message {
+    text-align: center;
+    padding: 40px;
+    color: #6c757d;
+}
+
+.no-quotes-message button {
     margin-top: 10px;
 }
 
-.favorite-btn, .delete-btn {
-    padding: 5px 10px;
-    font-size: 0.8rem;
-    border: none;
-    border-radius: 3px;
-    cursor: pointer;
-}
-
-.favorite-btn {
-    background-color: #ffd700;
-    color: #333;
-}
-
-.favorite-btn.favorited {
-    background-color: #ff6b6b;
-    color: white;
-}
-
-.delete-btn {
-    background-color: #dc3545;
-    color: white;
-}
-
-.storage-info {
-    margin-top: 20px;
-    padding-top: 20px;
-    border-top: 1px solid #ddd;
+.filter-status {
+    font-style: italic;
+    color: #28a745;
 }
