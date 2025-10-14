@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dynamic Quote Generator with Storage</title>
+    <title>Dynamic Quote Generator with Categories</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -21,7 +21,7 @@
         }
         
         .container {
-            max-width: 800px;
+            max-width: 900px;
             margin: 0 auto;
             background-color: rgba(255, 255, 255, 0.95);
             border-radius: 15px;
@@ -75,6 +75,45 @@
             text-align: right;
             font-weight: 600;
             color: #4a00e0;
+        }
+        
+        .quote-category {
+            display: inline-block;
+            background-color: #4a00e0;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-top: 10px;
+        }
+        
+        .filter-section {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-label {
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        select {
+            padding: 10px 15px;
+            border: 1px solid #ced4da;
+            border-radius: 8px;
+            font-size: 1rem;
+            background-color: white;
+            min-width: 200px;
         }
         
         .controls {
@@ -205,6 +244,28 @@
             color: #6c757d;
         }
         
+        .category-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .category-tag {
+            background-color: #e9ecef;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .category-tag.active {
+            background-color: #4a00e0;
+            color: white;
+        }
+        
         footer {
             text-align: center;
             padding: 20px;
@@ -213,13 +274,22 @@
             border-top: 1px solid #e9ecef;
         }
         
-        @media (max-width: 600px) {
+        @media (max-width: 768px) {
             .controls, .storage-section {
                 grid-template-columns: 1fr;
             }
             
             h1 {
                 font-size: 2rem;
+            }
+            
+            .filter-group {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            select {
+                min-width: 100%;
             }
         }
     </style>
@@ -228,13 +298,28 @@
     <div class="container">
         <header>
             <h1>Dynamic Quote Generator</h1>
-            <p class="subtitle">Store, manage, and share your favorite quotes</p>
+            <p class="subtitle">Store, manage, and filter your favorite quotes by category</p>
         </header>
         
         <div class="content">
+            <div class="filter-section">
+                <div class="filter-group">
+                    <span class="filter-label">Filter by Category:</span>
+                    <select id="categoryFilter">
+                        <option value="all">All Categories</option>
+                        <!-- Categories will be populated dynamically -->
+                    </select>
+                    <span id="filterStatus" class="filter-label"></span>
+                </div>
+                <div class="category-tags" id="categoryTags">
+                    <!-- Category tags will be populated dynamically -->
+                </div>
+            </div>
+            
             <div class="quote-display">
                 <p class="quote-text" id="quoteText">Click "Generate Quote" to get started!</p>
                 <p class="quote-author" id="quoteAuthor"></p>
+                <span class="quote-category" id="quoteCategory"></span>
             </div>
             
             <div class="controls">
@@ -260,6 +345,11 @@
                 <div class="form-group">
                     <label for="newQuoteAuthor">Author</label>
                     <input type="text" id="newQuoteAuthor" placeholder="Enter author name...">
+                </div>
+                <div class="form-group">
+                    <label for="newQuoteCategory">Category</label>
+                    <input type="text" id="newQuoteCategory" placeholder="Enter category (e.g., Inspiration, Technology, Life)...">
+                    <small>You can select from existing categories or create a new one</small>
                 </div>
                 <button class="primary-btn" id="saveQuoteBtn">
                     <i class="fas fa-save"></i> Save Quote
@@ -296,7 +386,7 @@
             
             <div class="storage-box">
                 <h3><i class="fas fa-history"></i> Session Storage</h3>
-                <p>Your last viewed quote is temporarily stored in session storage.</p>
+                <p>Your last viewed quote and filter preference are temporarily stored.</p>
                 <div class="stats">
                     <div class="stat-item">
                         <div class="stat-value" id="sessionQuoteCount">0</div>
