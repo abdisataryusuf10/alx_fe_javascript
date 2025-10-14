@@ -75,7 +75,7 @@ let quotes = JSON.parse(localStorage.getItem('quotes')) || initialQuotes;
 
 // Initialize session storage for last viewed quote and filter
 let lastQuoteId = sessionStorage.getItem('lastQuoteId') || 0;
-let currentFilter = sessionStorage.getItem('currentFilter') || 'all';
+let currentFilter = localStorage.getItem('currentFilter') || 'all'; // Changed to localStorage
 
 // Available categories
 let categories = [];
@@ -99,15 +99,11 @@ function saveQuotes() {
     updateStorageStats();
 }
 
-// Extract unique categories from quotes
+// Extract unique categories from quotes using map
 function extractCategories() {
-    const categorySet = new Set();
-    quotes.forEach(quote => {
-        if (quote.category && quote.category.trim() !== '') {
-            categorySet.add(quote.category);
-        }
-    });
-    categories = Array.from(categorySet).sort();
+    // Using map to get all categories and then filter unique ones
+    const allCategories = quotes.map(quote => quote.category || 'Uncategorized');
+    categories = [...new Set(allCategories)].sort();
 }
 
 // Populate categories in the filter dropdown and tags
@@ -133,8 +129,8 @@ function populateCategories() {
     });
     categoryTags.appendChild(allTag);
     
-    // Add categories to dropdown and tags
-    categories.forEach(category => {
+    // Add categories to dropdown and tags using map
+    categories.map(category => {
         // Add to dropdown
         const option = document.createElement('option');
         option.value = category;
@@ -153,7 +149,7 @@ function populateCategories() {
         categoryTags.appendChild(tag);
     });
     
-    // Set the current filter
+    // Set the current filter from localStorage
     categoryFilter.value = currentFilter;
     
     // Update filter status
@@ -174,8 +170,8 @@ function updateFilterStatus() {
 function filterQuotes() {
     currentFilter = categoryFilter.value;
     
-    // Save filter preference to session storage
-    sessionStorage.setItem('currentFilter', currentFilter);
+    // Save filter preference to localStorage for persistence across sessions
+    localStorage.setItem('currentFilter', currentFilter);
     
     // Update active tag
     document.querySelectorAll('.category-tag').forEach(tag => {
@@ -196,6 +192,21 @@ function filterQuotes() {
         if (currentQuote && currentQuote.category !== currentFilter) {
             // If not, generate a new one from the filtered set
             generateRandomQuote();
+        }
+    }
+    
+    // Update the displayed quote to ensure it matches the current filter
+    const currentQuote = quotes[lastQuoteId];
+    if (currentQuote && currentFilter !== 'all' && currentQuote.category !== currentFilter) {
+        // Current quote doesn't match filter, find a quote that does
+        const matchingQuoteIndex = quotes.findIndex(quote => quote.category === currentFilter);
+        if (matchingQuoteIndex !== -1) {
+            displayQuote(quotes[matchingQuoteIndex], matchingQuoteIndex);
+        } else {
+            // No quotes in this category
+            quoteText.textContent = `No quotes available in "${currentFilter}" category.`;
+            quoteAuthor.textContent = "";
+            quoteCategory.textContent = "";
         }
     }
 }
@@ -390,7 +401,12 @@ categoryFilter.addEventListener('change', filterQuotes);
 function initApp() {
     saveQuotes(); // Ensure initial quotes are saved to localStorage
     populateCategories(); // Populate categories dropdown and tags
-    generateRandomQuote(); // Show a random quote on page load
+    
+    // Apply the saved filter
+    filterQuotes();
+    
+    // Show a random quote on page load that matches the current filter
+    generateRandomQuote();
 }
 
 // Initialize when DOM is loaded
