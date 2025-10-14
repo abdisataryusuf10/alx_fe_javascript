@@ -1,53 +1,242 @@
-<!-- In the export-section, replace the entire section with this: -->
-<div class="export-section">
-    <h2>Export & Import Quotes</h2>
-    
-    <!-- Section 1: Export Quotes Button -->
-    <div class="input-group">
-        <h3>Export Quotes</h3>
-        <button id="exportQuotes">Export Quotes</button>
-        <p style="font-size: 0.9rem; color: #666; margin-top: 5px;">
-            Download all your quotes as a JSON file.
-        </p>
-    </div>
-
-    <!-- Section 2: Export to JSON File Functionality -->
-    <div class="input-group">
-        <h3>Quick Export</h3>
-        <button onclick="exportToJsonFile()">Export to JSON File</button>
-        <p style="font-size: 0.9rem; color: #666; margin-top: 5px;">
-            One-click export to download quotes as JSON.
-        </p>
-    </div>
-
-    <!-- Section 3: Import Quotes File Input -->
-    <div class="input-group">
-        <h3>Import Quotes</h3>
-        <input type="file" id="importQuotesFile" accept=".json" onchange="importFromJsonFile(event)" />
-        <p style="font-size: 0.9rem; color: #666; margin-top: 5px;">
-            Select a JSON file to import quotes.
-        </p>
-    </div>
-
-    <!-- Section 4: Import from JSON File Function Display -->
-    <div class="input-group">
-        <h3>Manual Import</h3>
-        <label for="importJsonText">Or paste JSON data:</label>
-        <textarea id="importJsonText" placeholder='[{"text":"Your quote","category":"Category"}]'></textarea>
-        <button onclick="importFromJsonManual()">Import from JSON</button>
-    </div>
-
-    <div class="storage-info">
-        <h3>Storage Status</h3>
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-number" id="storedQuotes">0</div>
-                <div class="stat-label">Quotes Saved</div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quote Filtering System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            color: #5a4fcf;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+        }
+        
+        .subtitle {
+            color: #666;
+            font-size: 1.2rem;
+        }
+        
+        #filterSection {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .filter-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-controls {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        select, button {
+            padding: 12px 20px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        select {
+            min-width: 200px;
+        }
+        
+        select:focus, button:focus {
+            outline: none;
+            border-color: #5a4fcf;
+            box-shadow: 0 0 0 3px rgba(90, 79, 207, 0.2);
+        }
+        
+        button {
+            background: #5a4fcf;
+            color: white;
+            border: none;
+            font-weight: 600;
+        }
+        
+        button:hover {
+            background: #4a3fbf;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        #quotesSection {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .quote-count {
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+            color: #5a4fcf;
+            font-weight: 600;
+        }
+        
+        .quotes-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 25px;
+        }
+        
+        .quote-item {
+            padding: 25px;
+            border-left: 5px solid #5a4fcf;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .quote-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+        }
+        
+        .quote-item::before {
+            content: """;
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 80px;
+            color: rgba(90, 79, 207, 0.1);
+            font-family: Georgia, serif;
+            line-height: 1;
+        }
+        
+        .quote-item blockquote {
+            font-size: 18px;
+            font-style: italic;
+            margin: 0 0 15px 0;
+            color: #444;
+            line-height: 1.6;
+        }
+        
+        .quote-item cite {
+            display: block;
+            text-align: right;
+            color: #666;
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 10px;
+        }
+        
+        .category-tag {
+            display: inline-block;
+            padding: 6px 12px;
+            background-color: #5a4fcf;
+            color: white;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .empty-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .empty-state h3 {
+            margin-bottom: 10px;
+            color: #5a4fcf;
+        }
+        
+        @media (max-width: 768px) {
+            .filter-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+            
+            .filter-controls {
+                width: 100%;
+            }
+            
+            select, button {
+                flex: 1;
+                min-width: unset;
+            }
+            
+            .quotes-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Inspirational Quotes</h1>
+            <p class="subtitle">Filter by category to find the perfect quote for any moment</p>
+        </header>
+        
+        <section id="filterSection">
+            <div class="filter-header">
+                <h2>Filter Quotes</h2>
+                <div class="filter-controls">
+                    <select id="categoryFilter">
+                        <option value="all">All Categories</option>
+                        <!-- Categories will be populated dynamically -->
+                    </select>
+                    <button id="resetFilter">Reset Filter</button>
+                </div>
             </div>
-            <div class="stat-card">
-                <div class="stat-number" id="storageSize">0 KB</div>
-                <div class="stat-label">Storage Used</div>
+        </section>
+        
+        <section id="quotesSection">
+            <div id="quoteCount" class="quote-count">Showing 0 quotes</div>
+            <div id="quoteDisplay" class="quotes-container">
+                <!-- Quotes will be dynamically inserted here -->
             </div>
-        </div>
+        </section>
     </div>
-</div>
+
+    <script src="script.js"></script>
+</body>
+</html>
