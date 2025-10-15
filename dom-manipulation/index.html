@@ -1,4 +1,91 @@
-<label for="categoryFilter">Filter by Category:</label>
-<select id="categoryFilter" onchange="filterQuotes()">
-    <option value="all">All Categories</option>
-    </select>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Quote Generator & Filter</title>
+    <style>
+        /* Basic inline styles for readability */
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        header { text-align: center; margin-bottom: 30px; }
+        #quoteDisplay { 
+            border: 2px solid #ccc; 
+            padding: 20px; 
+            margin-top: 20px; 
+            min-height: 100px;
+            background-color: #f9f9f9;
+        }
+        .controls { margin-bottom: 20px; padding: 10px; border: 1px solid #eee; }
+        .controls label { font-weight: bold; margin-right: 10px; }
+        button { padding: 10px 15px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Dynamic Quote Generator & Filtering System</h1>
+    </header>
+
+    <section class="controls">
+        <h2>Filter Quotes</h2>
+        
+        <label for="categoryFilter">Filter by Category:</label>
+        <select id="categoryFilter" onchange="filterQuotes()">
+            <option value="all">All Categories</option>
+            </select>
+        
+        <p style="margin-top: 15px;">
+            <button onclick="loadAndApplyLastFilter()">Refresh Quotes (Applies Last Filter)</button>
+        </p>
+    </section>
+    
+    <section>
+        <h2>Current Quotes</h2>
+        <div id="quoteDisplay">
+            <p>Loading quotes...</p>
+        </div>
+    </section>
+    
+    <section class="controls">
+        <h2>Add New Quote</h2>
+        <label for="newQuoteText">Quote Text:</label>
+        <input type="text" id="newQuoteText" placeholder="Enter quote text" required><br><br>
+        
+        <label for="newQuoteAuthor">Author:</label>
+        <input type="text" id="newQuoteAuthor" placeholder="Enter author" required><br><br>
+        
+        <label for="newQuoteCategory">Category:</label>
+        <input type="text" id="newQuoteCategory" placeholder="Enter category (e.g., success)" required><br><br>
+        
+        <button onclick="handleAddNewQuote()">Add Quote & Update Filter</button>
+        
+        <script>
+            // Helper function to connect the HTML inputs to the main addQuote logic in script.js
+            function handleAddNewQuote() {
+                const text = document.getElementById('newQuoteText').value.trim();
+                const author = document.getElementById('newQuoteAuthor').value.trim();
+                const category = document.getElementById('newQuoteCategory').value.trim();
+                
+                if (text && author && category) {
+                    const newQuote = {
+                        text: text,
+                        author: author,
+                        category: category.toLowerCase() // Use lowercase for consistent filtering
+                    };
+                    addQuote(newQuote);
+                    
+                    // Clear the form fields after submission
+                    document.getElementById('newQuoteText').value = '';
+                    document.getElementById('newQuoteAuthor').value = '';
+                    document.getElementById('newQuoteCategory').value = '';
+                } else {
+                    alert('Please fill in all fields.');
+                }
+            }
+        </script>
+    </section>
+
+    <script src="script.js"></script>
+    
+</body>
+</html>
