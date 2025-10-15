@@ -66,14 +66,20 @@ function saveQuotesToStorage() {
     localStorage.setItem('quotes', JSON.stringify(quotes));
 }
 
-// Populate categories dropdown dynamically
+// ============================================================================
+// SECTION 1: populateCategories Function
+// ============================================================================
+/**
+ * Populate categories dropdown dynamically
+ * Extracts unique categories from quotes array and updates the dropdown
+ */
 function populateCategories() {
     const categoryFilter = document.getElementById('categoryFilter');
     
     // Store the current selected value
     const currentSelection = categoryFilter.value;
     
-    // Clear existing options except the first one
+    // Clear existing options except the first one ("All Categories")
     while (categoryFilter.children.length > 1) {
         categoryFilter.removeChild(categoryFilter.lastChild);
     }
@@ -95,27 +101,39 @@ function populateCategories() {
     }
 }
 
-// Display quotes based on current filter
-function displayQuotes(filterCategory = null) {
-    const quotesContainer = document.getElementById('quotesContainer');
+// ============================================================================
+// SECTION 2: filterQuotes Function - Filtering Logic
+// ============================================================================
+/**
+ * Filter quotes based on selected category
+ * Updates the displayed quotes based on the selected filter
+ */
+function filterQuotes() {
     const categoryFilter = document.getElementById('categoryFilter');
+    const selectedCategory = categoryFilter.value;
     
-    // Use provided filter or get from dropdown
-    const selectedCategory = filterCategory || categoryFilter.value;
-    
+    // Clear the quotes container
+    const quotesContainer = document.getElementById('quotesContainer');
     quotesContainer.innerHTML = '';
 
+    // ============================================================================
+    // SECTION 2a: Logic to filter quotes based on selected category
+    // ============================================================================
     const filteredQuotes = selectedCategory === 'all' 
-        ? quotes 
-        : quotes.filter(quote => quote.category === selectedCategory);
+        ? quotes // Show all quotes if "all" is selected
+        : quotes.filter(quote => quote.category === selectedCategory); // Filter by category
 
+    // Display appropriate message if no quotes found
     if (filteredQuotes.length === 0) {
         quotesContainer.innerHTML = '<div class="quote-card"><p>No quotes found for the selected category.</p></div>';
         return;
     }
 
+    // ============================================================================
+    // SECTION 2b: Update the displayed quotes based on filtered results
+    // ============================================================================
     filteredQuotes.forEach((quote, index) => {
-        // Find the original index in the main quotes array
+        // Find the original index in the main quotes array for proper deletion
         const originalIndex = quotes.findIndex(q => 
             q.text === quote.text && q.author === quote.author && q.category === quote.category
         );
@@ -131,20 +149,20 @@ function displayQuotes(filterCategory = null) {
         `;
         quotesContainer.appendChild(quoteElement);
     });
-}
 
-// Filter quotes based on selected category
-function filterQuotes() {
-    const categoryFilter = document.getElementById('categoryFilter');
-    const selectedCategory = categoryFilter.value;
-    
-    // Save filter preference to localStorage
+    // ============================================================================
+    // SECTION 3: Saving the selected category to local storage
+    // ============================================================================
     localStorage.setItem('lastSelectedFilter', selectedCategory);
-    
-    displayQuotes(selectedCategory);
 }
 
-// Restore last selected filter from localStorage
+// ============================================================================
+// SECTION 4: Restoring the last selected category when the page loads
+// ============================================================================
+/**
+ * Restore last selected filter from localStorage
+ * Applies the user's last filter preference when the page loads
+ */
 function restoreLastFilter() {
     const lastFilter = localStorage.getItem('lastSelectedFilter');
     if (lastFilter) {
@@ -155,8 +173,53 @@ function restoreLastFilter() {
         if (lastFilter === 'all' || categories.includes(lastFilter)) {
             categoryFilter.value = lastFilter;
             displayQuotes(lastFilter);
+        } else {
+            // If stored category no longer exists, default to "all"
+            categoryFilter.value = 'all';
+            displayQuotes('all');
         }
     }
+}
+
+// Display quotes based on current filter (helper function)
+function displayQuotes(filterCategory = null) {
+    const categoryFilter = document.getElementById('categoryFilter');
+    
+    // Use provided filter or get from dropdown
+    const selectedCategory = filterCategory || categoryFilter.value;
+    
+    // Clear the quotes container
+    const quotesContainer = document.getElementById('quotesContainer');
+    quotesContainer.innerHTML = '';
+
+    // Filter quotes based on selected category
+    const filteredQuotes = selectedCategory === 'all' 
+        ? quotes 
+        : quotes.filter(quote => quote.category === selectedCategory);
+
+    // Display appropriate message if no quotes found
+    if (filteredQuotes.length === 0) {
+        quotesContainer.innerHTML = '<div class="quote-card"><p>No quotes found for the selected category.</p></div>';
+        return;
+    }
+
+    // Display filtered quotes
+    filteredQuotes.forEach((quote, index) => {
+        const originalIndex = quotes.findIndex(q => 
+            q.text === quote.text && q.author === quote.author && q.category === quote.category
+        );
+        
+        const quoteElement = document.createElement('div');
+        quoteElement.className = 'quote-card';
+        quoteElement.innerHTML = `
+            <div class="quote-text">"${quote.text}"</div>
+            <div class="quote-author">- ${quote.author}
+                <span class="quote-category">${quote.category}</span>
+            </div>
+            <button class="delete-btn" onclick="deleteQuote(${originalIndex})">Delete</button>
+        `;
+        quotesContainer.appendChild(quoteElement);
+    });
 }
 
 // Add new quote function
@@ -249,6 +312,7 @@ if (typeof module !== 'undefined' && module.exports) {
         deleteQuote,
         displayQuotes,
         saveQuotesToStorage,
-        loadQuotesFromStorage
+        loadQuotesFromStorage,
+        restoreLastFilter
     };
 }
