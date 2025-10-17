@@ -57,6 +57,11 @@ const localStorageSize = document.getElementById('localStorageSize');
 const categoryFilter = document.getElementById('categoryFilter');
 const filterStatus = document.getElementById('filterStatus');
 
+// ADDED: New DOM elements for quotes display
+const quotesContainer = document.getElementById('quotesContainer');
+const quotesList = document.getElementById('quotesList');
+const currentCategory = document.getElementById('currentCategory');
+
 // Initialize quotes array from localStorage or use initial quotes
 let quotes = JSON.parse(localStorage.getItem('quotes')) || initialQuotes;
 
@@ -123,7 +128,7 @@ function updateFilterStatus() {
     }
 }
 
-// Filter quotes based on selected category
+// UPDATED: Enhanced filterQuotes function with quoteDisplay
 function filterQuotes() {
     currentFilter = categoryFilter.value;
     
@@ -132,6 +137,17 @@ function filterQuotes() {
     
     // Update filter status
     updateFilterStatus();
+    
+    // Update current category display
+    currentCategory.textContent = currentFilter === 'all' ? 'All Categories' : currentFilter;
+    
+    // Show/hide quotes container based on filter
+    if (currentFilter !== 'all') {
+        quotesContainer.style.display = 'block';
+        displayFilteredQuotes();
+    } else {
+        quotesContainer.style.display = 'none';
+    }
     
     // If we're generating a random quote, make sure it respects the filter
     if (currentFilter !== 'all') {
@@ -142,6 +158,39 @@ function filterQuotes() {
             generateRandomQuote();
         }
     }
+}
+
+// ADDED: Display filtered quotes in the quotes container
+function displayFilteredQuotes() {
+    // Clear existing quotes
+    quotesList.innerHTML = '';
+    
+    // Filter quotes based on current category
+    const filteredQuotes = currentFilter === 'all' 
+        ? quotes 
+        : quotes.filter(quote => quote.category === currentFilter);
+    
+    if (filteredQuotes.length === 0) {
+        const noQuotesMessage = document.createElement('div');
+        noQuotesMessage.className = 'quote-item';
+        noQuotesMessage.innerHTML = `
+            <p class="quote-item-text">No quotes found in this category.</p>
+        `;
+        quotesList.appendChild(noQuotesMessage);
+        return;
+    }
+    
+    // Display each filtered quote
+    filteredQuotes.forEach((quote, index) => {
+        const quoteItem = document.createElement('div');
+        quoteItem.className = 'quote-item';
+        quoteItem.innerHTML = `
+            <p class="quote-item-text">"${quote.text}"</p>
+            <p class="quote-item-author">- ${quote.author}</p>
+            <span class="quote-item-category">${quote.category}</span>
+        `;
+        quotesList.appendChild(quoteItem);
+    });
 }
 
 // Get the current displayed quote
@@ -234,6 +283,7 @@ function importFromJsonFile(event) {
             quotes.push(...importedQuotes);
             saveQuotes();
             populateCategories(); // Update categories after import
+            displayFilteredQuotes(); // Update displayed quotes
             alert(`Successfully imported ${importedQuotes.length} quotes!`);
             
             // Reset file input
@@ -251,6 +301,7 @@ function clearAllQuotes() {
         quotes = [];
         saveQuotes();
         populateCategories(); // Update categories after clear
+        displayFilteredQuotes(); // Update displayed quotes
         quoteText.textContent = "All quotes have been cleared. Add new quotes to get started!";
         quoteAuthor.textContent = "";
         quoteCategory.textContent = "";
@@ -271,6 +322,11 @@ function addNewQuote() {
         // Update categories if this is a new category
         if (!categories.includes(category)) {
             populateCategories();
+        }
+        
+        // Update displayed quotes if we're viewing a specific category
+        if (currentFilter !== 'all') {
+            displayFilteredQuotes();
         }
         
         // Reset form
@@ -315,7 +371,7 @@ function initApp() {
     populateCategories(); // Populate categories dropdown
     
     // Apply the saved filter and show initial quote
-    filterQuotes();
+    filterQuotes(); // This will restore the last selected category
     generateRandomQuote();
 }
 
