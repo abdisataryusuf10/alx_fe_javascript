@@ -29,6 +29,7 @@ const defaultQuotes = [
 
 // Global variables
 let quotes = [];
+let filteredQuotes = [];
 
 // DOM Elements
 let categoryFilter;
@@ -84,10 +85,10 @@ function initializeApp() {
     // Populate categories dropdown
     populateCategories();
     
-    // Load saved filter preference
+    // Load saved filter preference and restore last selected category
     loadFilterPreference();
     
-    // Display quotes
+    // Display quotes based on current filter
     displayQuotes();
 }
 
@@ -120,35 +121,30 @@ function populateCategories() {
 function filterQuotes() {
     const selectedCategory = categoryFilter.value;
     
-    // Save filter preference to localStorage
+    // SECTION 1: Filter logic to update displayed quotes based on selected category
+    if (selectedCategory === 'all') {
+        // Show all quotes
+        filteredQuotes = [...quotes];
+    } else {
+        // Filter quotes by selected category
+        filteredQuotes = quotes.filter(quote => quote.category === selectedCategory);
+    }
+    
+    // SECTION 2: Save the selected category to local storage
     localStorage.setItem('selectedCategory', selectedCategory);
     
-    displayQuotes();
-}
-
-/**
- * Load saved filter preference from localStorage
- */
-function loadFilterPreference() {
-    const savedCategory = localStorage.getItem('selectedCategory');
-    if (savedCategory) {
-        categoryFilter.value = savedCategory;
-    }
-}
-
-/**
- * Display quotes based on current filter selection
- */
-function displayQuotes() {
-    const selectedCategory = categoryFilter.value;
+    // Update the display with filtered quotes
+    displayFilteredQuotes();
     
+    console.log(`Filtered quotes by category: "${selectedCategory}", Found: ${filteredQuotes.length} quotes`);
+}
+
+/**
+ * Display filtered quotes in the quotes container
+ */
+function displayFilteredQuotes() {
     // Clear container
     quotesContainer.innerHTML = '';
-    
-    // Filter quotes based on selected category
-    const filteredQuotes = selectedCategory === 'all' 
-        ? quotes 
-        : quotes.filter(quote => quote.category === selectedCategory);
     
     // Display message if no quotes found
     if (filteredQuotes.length === 0) {
@@ -158,9 +154,64 @@ function displayQuotes() {
     
     // Create and append quote elements
     filteredQuotes.forEach((quote, index) => {
-        const quoteElement = createQuoteElement(quote, index);
+        // Find the original index in the main quotes array for deletion
+        const originalIndex = quotes.findIndex(q => 
+            q.text === quote.text && q.author === quote.author && q.category === quote.category
+        );
+        
+        const quoteElement = createQuoteElement(quote, originalIndex);
         quotesContainer.appendChild(quoteElement);
     });
+}
+
+/**
+ * SECTION 3: Load and restore the last selected category when the page loads
+ */
+function loadFilterPreference() {
+    const savedCategory = localStorage.getItem('selectedCategory');
+    if (savedCategory) {
+        // Check if the saved category exists in current categories
+        const categoryExists = [...categoryFilter.options].some(option => option.value === savedCategory);
+        if (categoryExists || savedCategory === 'all') {
+            categoryFilter.value = savedCategory;
+            console.log('Restored last selected category:', savedCategory);
+        } else {
+            // If saved category doesn't exist, default to 'all'
+            categoryFilter.value = 'all';
+            localStorage.setItem('selectedCategory', 'all');
+            console.log('Saved category not found, defaulting to "all"');
+        }
+    } else {
+        // No saved preference, default to 'all'
+        categoryFilter.value = 'all';
+        localStorage.setItem('selectedCategory', 'all');
+        console.log('No saved category found, defaulting to "all"');
+    }
+    
+    // Apply the filter based on the restored category
+    applyCurrentFilter();
+}
+
+/**
+ * Apply the current filter selection to display quotes
+ */
+function applyCurrentFilter() {
+    const selectedCategory = categoryFilter.value;
+    
+    if (selectedCategory === 'all') {
+        filteredQuotes = [...quotes];
+    } else {
+        filteredQuotes = quotes.filter(quote => quote.category === selectedCategory);
+    }
+    
+    displayFilteredQuotes();
+}
+
+/**
+ * Display quotes based on current state (used during initialization)
+ */
+function displayQuotes() {
+    applyCurrentFilter();
 }
 
 /**
@@ -215,14 +266,14 @@ function addQuote() {
     // Update localStorage
     updateLocalStorage();
     
-    // Update categories dropdown if new category
+    // SECTION 4: Update categories dropdown if new category is introduced
     updateCategoriesIfNew(category);
     
     // Clear form
     clearQuoteForm();
     
-    // Refresh quotes display
-    displayQuotes();
+    // Refresh quotes display with current filter
+    applyCurrentFilter();
     
     // Show success message
     alert('Quote added successfully!');
@@ -258,13 +309,18 @@ function validateQuoteInput(text, author, category) {
 }
 
 /**
- * Update categories dropdown if a new category is added
+ * SECTION 4: Update categories dropdown if a new category is introduced
  * @param {string} newCategory - The new category to check
  */
 function updateCategoriesIfNew(newCategory) {
     const existingCategories = [...categoryFilter.options].map(option => option.value);
     if (!existingCategories.includes(newCategory)) {
+        console.log('New category detected, updating categories dropdown:', newCategory);
         populateCategories();
+        
+        // Auto-select the new category in the filter
+        categoryFilter.value = newCategory;
+        localStorage.setItem('selectedCategory', newCategory);
     }
 }
 
@@ -283,10 +339,29 @@ function clearQuoteForm() {
  */
 function deleteQuote(index) {
     if (confirm('Are you sure you want to delete this quote?')) {
+        // Remove the quote
         quotes.splice(index, 1);
         updateLocalStorage();
+        
+        // Update categories in case the deleted quote was the last of its category
         populateCategories();
-        displayQuotes();
+        
+        // Check if current filter category still exists
+        const currentCategory = categoryFilter.value;
+        if (currentCategory !== 'all') {
+            const categoryExists = quotes.some(quote => quote.category === currentCategory);
+            if (!categoryExists) {
+                // If category no longer exists, switch to 'all'
+                categoryFilter.value = 'all';
+                localStorage.setItem('selectedCategory', 'all');
+                console.log('Category no longer exists, switched to "all"');
+            }
+        }
+        
+        // Refresh display
+        applyCurrentFilter();
+        
+        alert('Quote deleted successfully!');
     }
 }
 
@@ -304,22 +379,12 @@ function resetToDefault() {
     if (confirm('This will reset all quotes to default and clear your changes. Continue?')) {
         quotes = [...defaultQuotes];
         localStorage.setItem('quotes', JSON.stringify(defaultQuotes));
-        localStorage.removeItem('selectedCategory');
+        localStorage.setItem('selectedCategory', 'all');
         populateCategories();
         categoryFilter.value = 'all';
-        displayQuotes();
+        applyCurrentFilter();
         alert('Quotes reset to default successfully!');
     }
 }
 
-// Export functions for testing purposes (if needed)
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = {
-        populateCategories,
-        filterQuotes,
-        addQuote,
-        deleteQuote,
-        resetToDefault,
-        validateQuoteInput
-    };
-}
+// Export functions for testing purposes (if needed
