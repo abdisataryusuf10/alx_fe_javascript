@@ -3,134 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dynamic Quote Generator with Filtering</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        .container {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .filter-section {
-            margin-bottom: 20px;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 5px;
-        }
-        select, input, textarea, button {
-            padding: 10px;
-            margin: 5px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 14px;
-        }
-        button {
-            background-color: #007bff;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-        .quote {
-            border-left: 4px solid #007bff;
-            padding: 15px;
-            margin: 15px 0;
-            background: #f8f9fa;
-            border-radius: 0 5px 5px 0;
-        }
-        .quote-text {
-            font-size: 18px;
-            font-style: italic;
-            margin-bottom: 10px;
-        }
-        .quote-author {
-            font-weight: bold;
-            color: #555;
-        }
-        .quote-category {
-            display: inline-block;
-            background: #007bff;
-            color: white;
-            padding: 3px 8px;
-            border-radius: 3px;
-            font-size: 12px;
-            margin-top: 5px;
-        }
-        .add-quote-form {
-            margin-top: 30px;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 5px;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        .reset-btn {
-            background: #6c757d;
-        }
-        .reset-btn:hover {
-            background: #545b62;
-        }
-        .delete-btn {
-            background: #dc3545;
-            padding: 5px 10px;
-            font-size: 12px;
-        }
-        .delete-btn:hover {
-            background: #c82333;
-        }
-    </style>
+    <title>Dynamic Content Filter</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <h1>Dynamic Quote Generator</h1>
-        
-        <!-- Filter Section -->
-        <div class="filter-section">
-            <label for="categoryFilter">Filter by Category:</label>
-            <select id="categoryFilter">
-                <option value="all">All Categories</option>
-                <!-- Categories will be populated dynamically -->
-            </select>
-            <button type="button" id="resetBtn" class="reset-btn">Reset to Default Quotes</button>
-        </div>
 
-        <!-- Quotes Display Area -->
-        <div id="quotesContainer">
-            <!-- Quotes will be displayed here -->
-        </div>
+    <div class="controls">
+        <h2>Filter by Category</h2>
+        <label>
+            <input type="checkbox" id="category-all" value="all" checked> All
+        </label>
+        <label>
+            <input type="checkbox" id="category-tech" value="Technology"> Technology
+        </label>
+        <label>
+            <input type="checkbox" id="category-science" value="Science"> Science
+        </label>
+        <label>
+            <input type="checkbox" id="category-art" value="Art"> Art
+        </label>
+    </div>
 
-        <!-- Add New Quote Form -->
-        <div class="add-quote-form">
-            <h3>Add New Quote</h3>
-            <div class="form-group">
-                <label for="quoteText">Quote Text:</label>
-                <textarea id="quoteText" rows="3" cols="50" placeholder="Enter the quote text"></textarea>
-            </div>
-            <div class="form-group">
-                <label for="quoteAuthor">Author:</label>
-                <input type="text" id="quoteAuthor" placeholder="Enter author name">
-            </div>
-            <div class="form-group">
-                <label for="quoteCategory">Category:</label>
-                <input type="text" id="quoteCategory" placeholder="Enter category (e.g., Motivation, Wisdom)">
-            </div>
-            <button type="button" id="addQuoteBtn">Add Quote</button>
-        </div>
+    <div id="content-container">
+        <!-- Dynamic content will be generated here -->
     </div>
 
     <script src="script.js"></script>
