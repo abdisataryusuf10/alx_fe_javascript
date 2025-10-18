@@ -3,7 +3,70 @@ const SERVER_BASE_URL = 'https://jsonplaceholder.typicode.com';
 let serverQuotes = [];
 let conflicts = [];
 let syncInterval;
+// STEP 1: Server Simulation - Add these functions
+async function fetchQuotesFromServer() {
+    try {
+        console.log('Fetching quotes from server...');
+        
+        // Simulate API call delay
+        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
+        
+        // Use JSONPlaceholder as mock API
+        const response = await fetch('https://jsonplaceholder.typicode.com/posts?_limit=8');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const posts = await response.json();
+        
+        // Convert posts to our quote format
+        const serverQuotes = posts.map(post => ({
+            id: `server_${post.id}`,
+            text: post.title.charAt(0).toUpperCase() + post.title.slice(1),
+            author: `Author ${post.userId}`,
+            category: ['Inspiration', 'Technology', 'Life', 'Wisdom'][post.userId % 4],
+            timestamp: Date.now() - Math.floor(Math.random() * 100000000),
+            source: 'server',
+            version: 1
+        }));
+        
+        console.log(`Fetched ${serverQuotes.length} quotes from server`);
+        return serverQuotes;
+        
+    } catch (error) {
+        console.error('Error fetching from server:', error);
+        throw new Error('Failed to fetch quotes from server');
+    }
+}
 
+async function postQuotesToServer(quotesToSync) {
+    try {
+        console.log('Posting quotes to server...');
+        
+        // Simulate API call delay
+        await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 800));
+        
+        // In a real application, this would be a POST request to your API
+        // For simulation, we'll just log the data and return success
+        console.log('Quotes to sync:', quotesToSync);
+        
+        // Simulate occasional server errors for testing
+        if (Math.random() < 0.1) { // 10% chance of error
+            throw new Error('Server temporarily unavailable');
+        }
+        
+        return {
+            success: true,
+            message: 'Quotes synced successfully',
+            syncedCount: quotesToSync.length,
+            timestamp: Date.now()
+        };
+        
+    } catch (error) {
+        console.error('Error posting to server:', error);
+        throw new Error('Failed to sync quotes with server');
+    }
+}
 // DOM Elements - Add new ones
 const syncNowBtn = document.getElementById('syncNowBtn');
 const viewConflictsBtn = document.getElementById('viewConflictsBtn');
@@ -129,7 +192,190 @@ class DataSync {
         
         return merged;
     }
+    // STEP 2: Data Syncing - Add this function
+async function syncQuotes() {
+    updateSyncStatus('syncing', 'Syncing with server...');
     
+    try {
+        // Fetch latest quotes from server
+        const serverQuotes = await fetchQuotesFromServer();
+        
+        // Get local quotes that need to be synced (new or modified)
+        const localQuotesToSync = quotes.filter(quote => 
+            quote.source === 'local' || 
+            (quote.lastSynced && quote.updatedAt > quote.lastSynced)
+        );
+        
+        // Post local changes to server
+        if (localQuotesToSync.length > 0) {
+            await postQuotesToServer(localQuotesToSync);
+            
+            // Update lastSynced timestamp for synced quotes
+            quotes.forEach(quote => {
+                if (localQuotesToSync.find(q => q.id === quote.id)) {
+                    quote.lastSynced = Date.now();
+                }
+            });
+        }
+        
+        // Merge server quotes with local quotes
+        const mergeResult = mergeQuotesWithServer(quotes, serverQuotes);
+        quotes = mergeResult.mergedQuotes;
+        conflicts = mergeResult.conflicts;
+        
+        // Save to local storage
+        saveQuotes();
+        
+        // Update UI and show notifications
+        updateSyncUI(mergeResult);
+        
+        updateSyncStatus('online', 'Sync complete');
+        
+    } catch (error) {
+        console.error('Sync failed:', error);
+        updateSyncStatus('error', 'Sync failed');
+        showNotification('Sync Failed', error.message, 'error');
+    }
+}
+// STEP 3: UI Updates - Add these functions
+function updateSyncUI(mergeResult) {
+    const { conflicts, newQuotesCount, updatedQuotesCount } = mergeResult;
+    
+    // Update last sync time
+    const now = new Date();
+    lastSyncTime.textContent = `Last sync: ${now.toLocaleTimeString()}`;
+    localStorage.setItem('lastSyncTime', now.toISOString());
+    
+    // Show appropriate notification
+    if (conflicts.length > 0) {
+        showSyncNotificationWithConflicts(conflicts, newQuotesCount, updatedQuotesCount);
+    } else if (newQuotesCount > 0 || updatedQuotesCount > 0) {
+        showSyncSuccessNotification(newQuotesCount, updatedQuotesCount);
+    } else {
+        showNotification('Sync Complete', 'Your quotes are up to date with the server.', 'success');
+    }
+    
+    // Update categories and display if needed
+    if (newQuotesCount > 0) {
+        populateCategories();
+        if (currentFilter !== 'all') {
+            displayFilteredQuotes();
+        }
+    }
+}
+
+function showSyncSuccessNotification(newQuotes, updatedQuotes) {
+    let message = 'Sync completed successfully.';
+    
+    if (newQuotes > 0 && updatedQuotes > 0) {
+        message = `Sync complete: ${newQuotes} new quotes added, ${updatedQuotes} quotes updated from server.`;
+    } else if (newQuotes > 0) {
+        message = `Sync complete: ${newQuotes} new quotes added from server.`;
+    } else if (updatedQuotes > 0) {
+        message = `Sync complete: ${updatedQuotes} quotes updated from server.`;
+    }
+    
+    showNotification('Sync Successful', message, 'success', [
+        {
+            text: 'View Changes',
+            action: () => {
+                if (currentFilter === 'all') {
+                    generateRandomQuote();
+                }
+                hideNotification();
+            },
+            class: 'primary'
+        },
+        {
+            text: 'Dismiss',
+            action: hideNotification,
+            class: 'secondary'
+        }
+    ]);
+}
+
+function showSyncNotificationWithConflicts(conflicts, newQuotes, updatedQuotes) {
+    let message = `Found ${conflicts.length} conflicts that need resolution.`;
+    
+    if (newQuotes > 0 || updatedQuotes > 0) {
+        message += ` Also added ${newQuotes} new quotes and updated ${updatedQuotes} quotes.`;
+    }
+    
+    showNotification('Sync Complete with Conflicts', message, 'warning', [
+        {
+            text: 'Resolve Conflicts',
+            action: () => {
+                showConflictResolution();
+                hideNotification();
+            },
+            class: 'primary'
+        },
+        {
+            text: 'View New Quotes',
+            action: () => {
+                if (currentFilter === 'all') {
+                    generateRandomQuote();
+                }
+                hideNotification();
+            },
+            class: 'secondary'
+        },
+        {
+            text: 'Dismiss',
+            action: hideNotification,
+            class: 'secondary'
+        }
+    ]);
+}
+function mergeQuotesWithServer(localQuotes, serverQuotes) {
+    const mergedQuotes = [...localQuotes];
+    const conflicts = [];
+    const serverQuoteMap = new Map(serverQuotes.map(q => [q.id, q]));
+    
+    // First pass: Update existing quotes and detect conflicts
+    mergedQuotes.forEach((localQuote, index) => {
+        const serverQuote = serverQuoteMap.get(localQuote.id);
+        
+        if (serverQuote) {
+            // Quote exists on both sides - check for conflicts
+            if (localQuote.text !== serverQuote.text || localQuote.author !== serverQuote.author) {
+                // Conflict detected
+                conflicts.push({
+                    id: localQuote.id,
+                    local: { ...localQuote },
+                    server: { ...serverQuote },
+                    type: 'content',
+                    resolved: false
+                });
+                
+                // For auto-resolution, server takes precedence
+                if (serverQuote.timestamp > localQuote.timestamp) {
+                    mergedQuotes[index] = { ...serverQuote, source: 'server' };
+                }
+            } else {
+                // No conflict, update with server data if newer
+                if (serverQuote.timestamp > localQuote.timestamp) {
+                    mergedQuotes[index] = { ...serverQuote, source: 'server' };
+                }
+            }
+            
+            // Remove from map to track processed quotes
+            serverQuoteMap.delete(localQuote.id);
+        }
+    });
+    
+    // Second pass: Add new quotes from server
+    serverQuoteMap.forEach(serverQuote => {
+        mergedQuotes.push({ ...serverQuote, source: 'server' });
+    });
+    
+    return {
+        mergedQuotes,
+        conflicts,
+        newQuotesCount: serverQuoteMap.size,
+        updatedQuotesCount: serverQuotes.length - serverQuoteMap.size
+    };
+}
     static detectConflicts(localQuotes, serverQuotes) {
         const conflicts = [];
         
@@ -158,7 +404,30 @@ class DataSync {
             DataSync.syncWithServer();
         }, 2 * 60 * 1000);
     }
+    // STEP 2: Periodic Sync - Add these functions
+function startPeriodicSync() {
+    // Sync immediately on start
+    syncQuotes();
     
+    // Then sync every 30 seconds for demonstration
+    // In production, this would be less frequent (e.g., every 5-10 minutes)
+    setInterval(() => {
+        if (document.visibilityState === 'visible') {
+            syncQuotes();
+        }
+    }, 30000); // 30 seconds
+    
+    console.log('Periodic sync started');
+}
+
+function stopPeriodicSync() {
+    // Clear all intervals (in a real app, you'd track the interval ID)
+    const intervalId = window.setInterval(function(){}, Number.MAX_SAFE_INTEGER);
+    for (let i = 1; i < intervalId; i++) {
+        window.clearInterval(i);
+    }
+    console.log('Periodic sync stopped');
+}
     static stopPeriodicSync() {
         if (syncInterval) {
             clearInterval(syncInterval);
@@ -350,7 +619,38 @@ function initApp() {
     if (savedCategory) {
         categoryFilter.value = savedCategory;
     }
+    // Update the existing initSync function
+function initSync() {
+    // Restore last sync time
+    const lastSync = localStorage.getItem('lastSyncTime');
+    if (lastSync) {
+        const time = new Date(lastSync);
+        lastSyncTime.textContent = `Last sync: ${time.toLocaleTimeString()}`;
+    }
     
+    // Start periodic sync
+    startPeriodicSync();
+}
+
+// Update the syncNowBtn event listener
+syncNowBtn.addEventListener('click', () => {
+    syncQuotes();
+});
+
+// Update the existing sync status function
+function updateSyncStatus(status, text) {
+    syncIndicator.className = `sync-indicator ${status}`;
+    syncStatusText.textContent = text;
+    
+    // Add visual feedback for syncing state
+    if (status === 'syncing') {
+        syncNowBtn.disabled = true;
+        syncNowBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
+    } else {
+        syncNowBtn.disabled = false;
+        syncNowBtn.innerHTML = '<i class="fas fa-sync"></i> Sync Now';
+    }
+}
     saveQuotes(); // Ensure initial quotes are saved to localStorage
     populateCategories(); // Populate categories dropdown
     
