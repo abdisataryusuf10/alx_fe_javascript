@@ -36,7 +36,8 @@ const initialQuotes = [
         category: "Life" 
     }
 ];
-
+const selectedCategory = document.getElementById('selectedCategory');
+const quotesCount = document.getElementById('quotesCount');
 // DOM Elements
 const quoteText = document.getElementById('quoteText');
 const quoteAuthor = document.getElementById('quoteAuthor');
