@@ -334,16 +334,10 @@
         </header>
         
         <div class="content">
-            <div class="filter-section">
-                <div class="filter-group">
-                    <span class="filter-label">Filter by Category:</span>
-                    <select id="categoryFilter">
-                        <option value="all">All Categories</option>
-                        <!-- Categories will be populated dynamically -->
-                    </select>
-                    <span id="filterStatus" class="filter-status"></span>
-                </div>
-            </div>
+   <div class="selected-category-display">
+    Currently viewing: <strong id="selectedCategory">All Categories</strong> 
+    <span class="quotes-count" id="quotesCount">(0 quotes)</span>
+</div>
             
             <!-- ADDED: Quotes container for displaying filtered quotes -->
             <div class="quotes-container" id="quotesContainer" style="display: none;">
