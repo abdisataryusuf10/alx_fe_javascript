@@ -228,7 +228,58 @@
                     </button>
                     <span class="filter-status" id="lastSyncTime">Last sync: Never</span>
                 </div>
-                
+                <!-- Update the sync-section in index.html -->
+<div class="sync-section">
+    <h3><i class="fas fa-sync-alt"></i> Server Synchronization</h3>
+    <div class="sync-controls">
+        <button class="primary-btn" id="syncNowBtn">
+            <i class="fas fa-sync"></i> Sync Now
+        </button>
+        <button class="secondary-btn" id="viewConflictsBtn">
+            <i class="fas fa-exclamation-triangle"></i> View Conflicts
+        </button>
+        <button class="secondary-btn" id="stopSyncBtn">
+            <i class="fas fa-pause"></i> Stop Auto-Sync
+        </button>
+        <span class="filter-status" id="lastSyncTime">Last sync: Never</span>
+    </div>
+    
+    <!-- Add sync statistics -->
+    <div class="sync-stats" id="syncStats" style="display: none;">
+        <div class="stat-item">
+            <div class="stat-value" id="serverQuoteCount">0</div>
+            <div class="stat-label">On Server</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value" id="localChangesCount">0</div>
+            <div class="stat-label">Local Changes</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value" id="conflictCount">0</div>
+            <div class="stat-label">Conflicts</div>
+        </div>
+    </div>
+    
+    <!-- Conflict Resolution Panel -->
+    <div class="conflict-resolution" id="conflictResolution" style="display: none;">
+        <h4><i class="fas fa-exclamation-circle"></i> Conflict Resolution</h4>
+        <p>The following quotes have conflicts between local and server versions. Choose which version to keep:</p>
+        <div id="conflictsList">
+            <!-- Conflicts will be populated here -->
+        </div>
+        <div class="conflict-actions">
+            <button class="primary-btn" id="resolveAllServerBtn">
+                <i class="fas fa-server"></i> Use Server Version for All
+            </button>
+            <button class="secondary-btn" id="resolveAllLocalBtn">
+                <i class="fas fa-desktop"></i> Use Local Version for All
+            </button>
+            <button class="danger-btn" id="cancelResolutionBtn">
+                <i class="fas fa-times"></i> Cancel
+            </button>
+        </div>
+    </div>
+</div>
                 <!-- Conflict Resolution Panel -->
                 <div class="conflict-resolution" id="conflictResolution" style="display: none;">
                     <h4><i class="fas fa-exclamation-circle"></i> Conflict Resolution</h4>
