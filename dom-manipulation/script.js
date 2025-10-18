@@ -82,7 +82,20 @@ const notification = document.getElementById('notification');
 const notificationTitle = document.getElementById('notificationTitle');
 const notificationMessage = document.getElementById('notificationMessage');
 const notificationActions = document.getElementById('notificationActions');
+// Add to DOM Elements section
+const stopSyncBtn = document.getElementById('stopSyncBtn');
+const syncStats = document.getElementById('syncStats');
+const serverQuoteCount = document.getElementById('serverQuoteCount');
+const localChangesCount = document.getElementById('localChangesCount');
+const conflictCount = document.getElementById('conflictCount');
 
+// Add event listener for stop sync button
+stopSyncBtn.addEventListener('click', () => {
+    stopPeriodicSync();
+    showNotification('Auto-Sync Stopped', 'Periodic synchronization has been paused.', 'warning');
+    stopSyncBtn.innerHTML = '<i class="fas fa-play"></i> Start Auto-Sync';
+    stopSyncBtn.onclick = startPeriodicSync;
+});
 // Existing DOM elements and variables remain...
 
 // STEP 1: Server Simulation
