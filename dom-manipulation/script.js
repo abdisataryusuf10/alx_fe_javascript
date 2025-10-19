@@ -849,149 +849,7 @@ function resolveAllConflicts(version) {
 function showNotification(title, message, type = 'info', actions = []) {
     notificationTitle.textContent = title;
     notificationMessage.textContent = message;
-    // STEP 5: Enhanced UI notifications for all sync events
-function updateSyncUI(mergeResult, syncResult, manualSync = false) {
-    const { conflicts, newQuotesCount, updatedQuotesCount, totalQuotes } = mergeResult;
-    
-    // Update last sync time
-    const now = new Date();
-    const lastSyncText = `Last sync: ${now.toLocaleTimeString()}`;
-    lastSyncTime.textContent = lastSyncText;
-    localStorage.setItem('lastSyncTime', now.toISOString());
-    
-    // Update sync statistics display
-    updateSyncStatsDisplay(newQuotesCount, updatedQuotesCount, conflicts.length);
-    
-    // Reset failed sync count on success
-    failedSyncCount = 0;
-    lastSyncAttempt = Date.now();
-    
-    // Show appropriate notification based on results
-    if (conflicts.length > 0) {
-        showConflictNotification(conflicts, newQuotesCount, updatedQuotesCount, manualSync);
-    } else if (newQuotesCount > 0 || updatedQuotesCount > 0) {
-        showSuccessNotification(newQuotesCount, updatedQuotesCount, syncResult.syncedCount, manualSync);
-    } else if (syncResult.syncedCount > 0) {
-        showUploadSuccessNotification(syncResult.syncedCount, manualSync);
-    } else {
-        showNoChangesNotification(manualSync);
-    }
-    
-    // Update UI elements
-    updateUIAfterSync(newQuotesCount, updatedQuotesCount);
-}
-
-function updateSyncStatsDisplay(newQuotes, updatedQuotes, conflictCount) {
-    // Show sync stats if there's activity
-    if (newQuotes > 0 || updatedQuotes > 0 || conflictCount > 0) {
-        syncStats.style.display = 'flex';
-        serverQuoteCount.textContent = quotes.length;
-        localChangesCount.textContent = quotes.filter(q => q.source === 'local').length;
-        conflictCount.textContent = conflicts.length;
-    }
-}
-
-function showConflictNotification(conflicts, newQuotes, updatedQuotes, manualSync) {
-    const title = manualSync ? 'Sync Complete - Conflicts Found' : 'New Conflicts Detected';
-    let message = `Found ${conflicts.length} conflicts that need your attention.`;
-    
-    if (newQuotes > 0) message += ` ${newQuotes} new quotes added.`;
-    if (updatedQuotes > 0) message += ` ${updatedQuotes} quotes updated.`;
-    
-    const actions = [
-        {
-            text: 'Resolve Now',
-            action: () => {
-                showConflictResolution();
-                hideNotification();
-            },
-            class: 'primary'
-        }
-    ];
-    
-    if (newQuotes > 0) {
-        actions.push({
-            text: 'View New Quotes',
-            action: () => {
-                if (currentFilter === 'all') {
-                    generateRandomQuote();
-                }
-                hideNotification();
-            },
-            class: 'secondary'
-        });
-    }
-    
-    actions.push({
-        text: 'Dismiss',
-        action: hideNotification,
-        class: 'secondary'
-    });
-    
-    showNotification(title, message, 'warning', actions);
-}
-
-function showSuccessNotification(newQuotes, updatedQuotes, syncedCount, manualSync) {
-    const title = manualSync ? 'Manual Sync Complete' : 'Auto-Sync Complete';
-    let message = '';
-    
-    if (syncedCount > 0 && (newQuotes > 0 || updatedQuotes > 0)) {
-        message = `Synced ${syncedCount} local changes and received ${newQuotes} new quotes from server.`;
-    } else if (syncedCount > 0) {
-        message = `Successfully synced ${syncedCount} local changes with server.`;
-    } else {
-        message = `Received ${newQuotes} new quotes and ${updatedQuotes} updates from server.`;
-    }
-    
-    showNotification(title, message, 'success', [
-        {
-            text: 'View Changes',
-            action: () => {
-                if (currentFilter === 'all') {
-                    generateRandomQuote();
-                }
-                hideNotification();
-            },
-            class: 'primary'
-        },
-        {
-            text: 'Dismiss',
-            action: hideNotification,
-            class: 'secondary'
-        }
-    ]);
-}
-
-function showUploadSuccessNotification(syncedCount, manualSync) {
-    const title = manualSync ? 'Upload Complete' : 'Changes Synced';
-    const message = `Successfully uploaded ${syncedCount} quotes to server.`;
-    
-    showNotification(title, message, 'success');
-}
-
-function showNoChangesNotification(manualSync) {
-    const title = manualSync ? 'Sync Complete' : 'Up to Date';
-    const message = manualSync 
-        ? 'All quotes are already synchronized with the server.' 
-        : 'Your quotes are up to date with the server.';
-    
-    showNotification(title, message, 'info');
-}
-
-function updateUIAfterSync(newQuotesCount, updatedQuotesCount) {
-    // Update categories if new quotes were added
-    if (newQuotesCount > 0) {
-        populateCategories();
-    }
-    
-    // Refresh display if viewing filtered content
-    if (currentFilter !== 'all') {
-        displayFilteredQuotes();
-    }
-    
-    // Update storage stats
-    updateStorageStats();
-}
+  }
     // Set type
     notification.className = `notification ${type}`;
     
@@ -1026,6 +884,421 @@ function updateUIAfterSync(newQuotesCount, updatedQuotesCount) {
 
 function hideNotification() {
     notification.classList.remove('show');
+}
+// Comprehensive Notification System
+class NotificationManager {
+    constructor() {
+        this.notificationQueue = [];
+        this.isShowingNotification = false;
+        this.activityLog = JSON.parse(localStorage.getItem('activityLog') || '[]');
+        this.init();
+    }
+
+    init() {
+        this.bindEvents();
+        this.loadActivityLog();
+    }
+
+    bindEvents() {
+        // Notification close
+        document.getElementById('notificationClose').addEventListener('click', () => {
+            this.hideMainNotification();
+        });
+
+        // Conflict banner actions
+        document.getElementById('resolveConflictsBtn').addEventListener('click', () => {
+            this.hideConflictBanner();
+            showConflictResolution();
+        });
+
+        document.getElementById('dismissConflictBanner').addEventListener('click', () => {
+            this.hideConflictBanner();
+        });
+
+        // Update badge
+        document.getElementById('loadUpdatesBtn').addEventListener('click', () => {
+            this.hideUpdateBadge();
+            syncQuotes(true);
+        });
+
+        // Auto-hide notifications on click outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.notification') && !e.target.closest('.toast')) {
+                this.hideAllTemporaryNotifications();
+            }
+        });
+    }
+
+    // Main notification methods
+    showMainNotification(title, message, type = 'info', actions = []) {
+        const notification = document.getElementById('mainNotification');
+        const icon = document.getElementById('notificationIcon');
+        
+        // Set type and icon
+        notification.className = `notification ${type}`;
+        icon.className = this.getIconForType(type);
+        
+        // Set content
+        document.getElementById('notificationTitle').textContent = title;
+        document.getElementById('notificationMessage').textContent = message;
+        
+        // Set actions
+        this.setNotificationActions(actions);
+        
+        // Show notification
+        notification.classList.add('show');
+        this.isShowingNotification = true;
+        
+        // Auto-hide if no actions
+        if (actions.length === 0) {
+            setTimeout(() => this.hideMainNotification(), 5000);
+        }
+        
+        this.logActivity('notification', `${type}: ${title}`);
+    }
+
+    hideMainNotification() {
+        const notification = document.getElementById('mainNotification');
+        notification.classList.remove('show');
+        this.isShowingNotification = false;
+        
+        // Show next in queue
+        setTimeout(() => this.processQueue(), 300);
+    }
+
+    // Toast notification methods
+    showToast(title, message, type = 'info', duration = 4000) {
+        const toast = document.getElementById('syncToast');
+        const icon = document.getElementById('toastIcon');
+        
+        // Set type and icon
+        icon.className = this.getIconForType(type);
+        
+        // Set content
+        document.getElementById('toastTitle').textContent = title;
+        document.getElementById('toastMessage').textContent = message;
+        
+        // Show toast
+        toast.classList.add('show');
+        
+        // Auto-hide
+        if (duration > 0) {
+            setTimeout(() => this.hideToast(), duration);
+        }
+        
+        this.logActivity('toast', `${type}: ${title}`);
+    }
+
+    hideToast() {
+        const toast = document.getElementById('syncToast');
+        toast.classList.remove('show');
+    }
+
+    updateSyncProgress(percent) {
+        const progress = document.getElementById('syncProgress');
+        progress.style.width = `${Math.max(0, Math.min(100, percent))}%`;
+    }
+
+    // Conflict banner methods
+    showConflictBanner(conflictCount) {
+        const banner = document.getElementById('conflictBanner');
+        const title = document.getElementById('conflictBannerTitle');
+        const message = document.getElementById('conflictBannerMessage');
+        
+        title.textContent = `Data Conflicts Detected (${conflictCount})`;
+        message.textContent = `${conflictCount} quotes have conflicting versions that need resolution`;
+        
+        banner.classList.add('show');
+        
+        this.logActivity('conflict', `${conflictCount} conflicts detected`);
+    }
+
+    hideConflictBanner() {
+        const banner = document.getElementById('conflictBanner');
+        banner.classList.remove('show');
+    }
+
+    // Update badge methods
+    showUpdateBadge(updateCount) {
+        const badge = document.getElementById('updateBadge');
+        badge.querySelector('span').textContent = `${updateCount} new quotes available`;
+        badge.classList.add('show');
+        
+        this.logActivity('update', `${updateCount} new quotes available`);
+    }
+
+    hideUpdateBadge() {
+        const badge = document.getElementById('updateBadge');
+        badge.classList.remove('show');
+    }
+
+    // Status panel updates
+    updateStatusPanel(stats) {
+        // Update local status
+        document.getElementById('localQuoteCount').textContent = stats.localCount || quotes.length;
+        document.getElementById('localChangesCount').textContent = 
+            `${stats.pendingChanges || 0} changes pending`;
+            
+        // Update server status
+        document.getElementById('serverQuoteCount').textContent = stats.serverCount || '0';
+        document.getElementById('lastSyncDetail').textContent = 
+            stats.lastSync || 'Never synced';
+            
+        // Update conflict status
+        document.getElementById('conflictCount').textContent = stats.conflictCount || '0';
+        document.getElementById('conflictStatus').textContent = 
+            (stats.conflictCount > 0) ? 'Needs resolution' : 'No conflicts';
+            
+        // Update card styles based on status
+        this.updateCardStyles(stats);
+    }
+
+    updateCardStyles(stats) {
+        const localCard = document.getElementById('localStatusCard');
+        const serverCard = document.getElementById('serverStatusCard');
+        const conflictCard = document.getElementById('conflictStatusCard');
+        
+        // Reset all cards
+        [localCard, serverCard, conflictCard].forEach(card => {
+            card.className = 'status-card';
+        });
+        
+        // Local card warning if changes pending
+        if (stats.pendingChanges > 0) {
+            localCard.classList.add('warning');
+        }
+        
+        // Server card error if never synced
+        if (!stats.lastSync || stats.lastSync === 'Never synced') {
+            serverCard.classList.add('error');
+        } else {
+            serverCard.classList.add('success');
+        }
+        
+        // Conflict card warning if conflicts exist
+        if (stats.conflictCount > 0) {
+            conflictCard.classList.add('warning');
+        } else {
+            conflictCard.classList.add('success');
+        }
+    }
+
+    // Activity feed methods
+    logActivity(type, message, data = null) {
+        const activity = {
+            id: Date.now() + Math.random().toString(36).substr(2, 9),
+            type,
+            message,
+            timestamp: new Date().toISOString(),
+            data
+        };
+        
+        this.activityLog.unshift(activity);
+        
+        // Keep only last 50 activities
+        if (this.activityLog.length > 50) {
+            this.activityLog = this.activityLog.slice(0, 50);
+        }
+        
+        // Save to localStorage
+        localStorage.setItem('activityLog', JSON.stringify(this.activityLog));
+        
+        // Update UI
+        this.updateActivityFeed();
+        
+        return activity;
+    }
+
+    updateActivityFeed() {
+        const feedItems = document.getElementById('feedItems');
+        const activities = this.activityLog.slice(0, 10); // Show last 10
+        
+        if (activities.length === 0) {
+            feedItems.innerHTML = `
+                <div class="feed-item empty">
+                    <i class="fas fa-info-circle"></i>
+                    <span>No recent activity</span>
+                </div>
+            `;
+            return;
+        }
+        
+        feedItems.innerHTML = activities.map(activity => `
+            <div class="feed-item ${activity.type}">
+                <i class="${this.getIconForType(activity.type)}"></i>
+                <span>${activity.message}</span>
+                <span class="feed-time">${this.formatTime(activity.timestamp)}</span>
+            </div>
+        `).join('');
+    }
+
+    loadActivityLog() {
+        this.updateActivityFeed();
+    }
+
+    // Utility methods
+    getIconForType(type) {
+        const icons = {
+            success: 'fas fa-check-circle',
+            error: 'fas fa-exclamation-circle',
+            warning: 'fas fa-exclamation-triangle',
+            info: 'fas fa-info-circle',
+            notification: 'fas fa-bell',
+            toast: 'fas fa-sync',
+            conflict: 'fas fa-exclamation-triangle',
+            update: 'fas fa-cloud-download-alt',
+            sync: 'fas fa-sync'
+        };
+        return icons[type] || 'fas fa-info-circle';
+    }
+
+    formatTime(timestamp) {
+        const date = new Date(timestamp);
+        const now = new Date();
+        const diffMs = now - date;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        
+        if (diffMins < 1) return 'Just now';
+        if (diffMins < 60) return `${diffMins}m ago`;
+        if (diffHours < 24) return `${diffHours}h ago`;
+        return date.toLocaleDateString();
+    }
+
+    setNotificationActions(actions) {
+        const actionsContainer = document.getElementById('notificationActions');
+        actionsContainer.innerHTML = '';
+        
+        if (actions.length === 0) {
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'notification-btn secondary';
+            closeBtn.textContent = 'Close';
+            closeBtn.onclick = () => this.hideMainNotification();
+            actionsContainer.appendChild(closeBtn);
+            return;
+        }
+        
+        actions.forEach(action => {
+            const button = document.createElement('button');
+            button.className = `notification-btn ${action.class || 'primary'}`;
+            button.textContent = action.text;
+            button.onclick = action.action;
+            actionsContainer.appendChild(button);
+        });
+    }
+
+    hideAllTemporaryNotifications() {
+        this.hideToast();
+        this.hideUpdateBadge();
+    }
+
+    processQueue() {
+        if (this.notificationQueue.length > 0 && !this.isShowingNotification) {
+            const nextNotification = this.notificationQueue.shift();
+            this.showMainNotification(...nextNotification);
+        }
+    }
+
+    queueNotification(title, message, type = 'info', actions = []) {
+        this.notificationQueue.push([title, message, type, actions]);
+        if (!this.isShowingNotification) {
+            this.processQueue();
+        }
+    }
+
+    // Specific notification helpers for common scenarios
+    showSyncStart() {
+        this.showToast('Syncing', 'Connecting to server...', 'info', 0);
+        this.updateSyncProgress(10);
+    }
+
+    showSyncProgress(percent, message) {
+        this.updateSyncProgress(percent);
+        document.getElementById('toastMessage').textContent = message;
+    }
+
+    showSyncComplete(stats) {
+        this.hideToast();
+        this.showToast('Sync Complete', `Synced ${stats.syncedCount} quotes`, 'success', 3000);
+        this.updateStatusPanel(stats);
+    }
+
+    showSyncError(error) {
+        this.hideToast();
+        this.showToast('Sync Failed', error.message, 'error', 5000);
+    }
+
+    showDataUpdated(updateCount) {
+        if (updateCount > 0) {
+            this.showUpdateBadge(updateCount);
+        }
+    }
+
+    showConflictsDetected(conflictCount) {
+        if (conflictCount > 0) {
+            this.showConflictBanner(conflictCount);
+            this.queueNotification(
+                'Data Conflicts Detected',
+                `Found ${conflictCount} quotes with conflicting versions between your device and the server.`,
+                'warning',
+                [
+                    {
+                        text: 'Resolve Now',
+                        action: () => {
+                            this.hideMainNotification();
+                            showConflictResolution();
+                        },
+                        class: 'primary'
+                    },
+                    {
+                        text: 'Later',
+                        action: () => this.hideMainNotification(),
+                        class: 'secondary'
+                    }
+                ]
+            );
+        }
+    }
+}
+
+// Initialize notification manager
+const notificationManager = new NotificationManager();
+
+// Update existing notification functions to use the new manager
+function showNotification(title, message, type = 'info', actions = []) {
+    notificationManager.showMainNotification(title, message, type, actions);
+}
+
+function hideNotification() {
+    notificationManager.hideMainNotification();
+}
+
+function showToast(title, message, type = 'info', duration = 4000) {
+    notificationManager.showToast(title, message, type, duration);
+}
+
+function updateSyncProgress(percent) {
+    notificationManager.updateSyncProgress(percent);
+}
+
+// Update sync functions to use new notification system
+async function syncQuotes(manualSync = false) {
+    notificationManager.showSyncStart();
+    // ... rest of sync logic
+}
+
+// Initialize notification system in app startup
+function initApp() {
+    // ... existing init code
+    
+    // Initialize notification system
+    notificationManager.updateStatusPanel({
+        localCount: quotes.length,
+        pendingChanges: quotes.filter(q => q.source === 'local').length,
+        serverCount: '0',
+        lastSync: 'Never',
+        conflictCount: conflicts.length
+    });
 }
 // Sync Status Management
 function updateSyncStatus(status, text) {
