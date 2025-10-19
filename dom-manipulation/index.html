@@ -12,7 +12,117 @@
             box-sizing: border-box;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        
+        <!-- Add this comprehensive notification system at the top of body -->
+<div id="notificationSystem">
+    <!-- Main Notification -->
+    <div id="mainNotification" class="notification">
+        <div class="notification-header">
+            <i id="notificationIcon" class="fas fa-info-circle"></i>
+            <h4 id="notificationTitle">Notification</h4>
+            <button class="notification-close" id="notificationClose">&times;</button>
+        </div>
+        <p id="notificationMessage">This is a notification message.</p>
+        <div class="notification-actions" id="notificationActions">
+            <!-- Actions will be populated dynamically -->
+        </div>
+    </div>
+
+    <!-- Sync Status Toast -->
+    <div id="syncToast" class="toast">
+        <div class="toast-content">
+            <i id="toastIcon" class="fas fa-sync"></i>
+            <div class="toast-text">
+                <span id="toastTitle">Syncing...</span>
+                <span id="toastMessage">Connecting to server</span>
+            </div>
+            <div class="toast-progress">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="syncProgress"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Conflict Alert Banner -->
+    <div id="conflictBanner" class="conflict-banner">
+        <div class="banner-content">
+            <i class="fas fa-exclamation-triangle"></i>
+            <div class="banner-text">
+                <strong id="conflictBannerTitle">Data Conflicts Detected</strong>
+                <span id="conflictBannerMessage">Some quotes have conflicting versions</span>
+            </div>
+            <div class="banner-actions">
+                <button class="banner-btn primary" id="resolveConflictsBtn">Resolve Now</button>
+                <button class="banner-btn secondary" id="dismissConflictBanner">Dismiss</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Update Available Badge -->
+    <div id="updateBadge" class="update-badge">
+        <i class="fas fa-cloud-download-alt"></i>
+        <span>New quotes available</span>
+        <button id="loadUpdatesBtn">Load</button>
+    </div>
+</div>
+
+<!-- Add to sync section - Enhanced sync status display -->
+<div class="sync-status-panel">
+    <div class="status-cards">
+        <div class="status-card" id="localStatusCard">
+            <div class="card-icon">
+                <i class="fas fa-desktop"></i>
+            </div>
+            <div class="card-content">
+                <h4>Local Storage</h4>
+                <div class="card-stats">
+                    <span class="stat-number" id="localQuoteCount">0</span>
+                    <span class="stat-label">quotes</span>
+                </div>
+                <div class="card-detail" id="localChangesCount">0 changes pending</div>
+            </div>
+        </div>
+
+        <div class="status-card" id="serverStatusCard">
+            <div class="card-icon">
+                <i class="fas fa-server"></i>
+            </div>
+            <div class="card-content">
+                <h4>Server Sync</h4>
+                <div class="card-stats">
+                    <span class="stat-number" id="serverQuoteCount">0</span>
+                    <span class="stat-label">quotes</span>
+                </div>
+                <div class="card-detail" id="lastSyncDetail">Never synced</div>
+            </div>
+        </div>
+
+        <div class="status-card" id="conflictStatusCard">
+            <div class="card-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="card-content">
+                <h4>Conflicts</h4>
+                <div class="card-stats">
+                    <span class="stat-number" id="conflictCount">0</span>
+                    <span class="stat-label">issues</span>
+                </div>
+                <div class="card-detail" id="conflictStatus">No conflicts</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Real-time Activity Feed -->
+    <div class="activity-feed" id="activityFeed">
+        <h4>Recent Activity</h4>
+        <div class="feed-items" id="feedItems">
+            <div class="feed-item empty">
+                <i class="fas fa-info-circle"></i>
+                <span>No recent activity</span>
+            </div>
+        </div>
+    </div>
+</div>
         body {
             background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
             color: #333;
@@ -472,116 +582,5 @@
     </div>
 
     <script src="script.js"></script>
-    <!-- Add this comprehensive notification system at the top of body -->
-<div id="notificationSystem">
-    <!-- Main Notification -->
-    <div id="mainNotification" class="notification">
-        <div class="notification-header">
-            <i id="notificationIcon" class="fas fa-info-circle"></i>
-            <h4 id="notificationTitle">Notification</h4>
-            <button class="notification-close" id="notificationClose">&times;</button>
-        </div>
-        <p id="notificationMessage">This is a notification message.</p>
-        <div class="notification-actions" id="notificationActions">
-            <!-- Actions will be populated dynamically -->
-        </div>
-    </div>
-
-    <!-- Sync Status Toast -->
-    <div id="syncToast" class="toast">
-        <div class="toast-content">
-            <i id="toastIcon" class="fas fa-sync"></i>
-            <div class="toast-text">
-                <span id="toastTitle">Syncing...</span>
-                <span id="toastMessage">Connecting to server</span>
-            </div>
-            <div class="toast-progress">
-                <div class="progress-bar">
-                    <div class="progress-fill" id="syncProgress"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Conflict Alert Banner -->
-    <div id="conflictBanner" class="conflict-banner">
-        <div class="banner-content">
-            <i class="fas fa-exclamation-triangle"></i>
-            <div class="banner-text">
-                <strong id="conflictBannerTitle">Data Conflicts Detected</strong>
-                <span id="conflictBannerMessage">Some quotes have conflicting versions</span>
-            </div>
-            <div class="banner-actions">
-                <button class="banner-btn primary" id="resolveConflictsBtn">Resolve Now</button>
-                <button class="banner-btn secondary" id="dismissConflictBanner">Dismiss</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Update Available Badge -->
-    <div id="updateBadge" class="update-badge">
-        <i class="fas fa-cloud-download-alt"></i>
-        <span>New quotes available</span>
-        <button id="loadUpdatesBtn">Load</button>
-    </div>
-</div>
-
-<!-- Add to sync section - Enhanced sync status display -->
-<div class="sync-status-panel">
-    <div class="status-cards">
-        <div class="status-card" id="localStatusCard">
-            <div class="card-icon">
-                <i class="fas fa-desktop"></i>
-            </div>
-            <div class="card-content">
-                <h4>Local Storage</h4>
-                <div class="card-stats">
-                    <span class="stat-number" id="localQuoteCount">0</span>
-                    <span class="stat-label">quotes</span>
-                </div>
-                <div class="card-detail" id="localChangesCount">0 changes pending</div>
-            </div>
-        </div>
-
-        <div class="status-card" id="serverStatusCard">
-            <div class="card-icon">
-                <i class="fas fa-server"></i>
-            </div>
-            <div class="card-content">
-                <h4>Server Sync</h4>
-                <div class="card-stats">
-                    <span class="stat-number" id="serverQuoteCount">0</span>
-                    <span class="stat-label">quotes</span>
-                </div>
-                <div class="card-detail" id="lastSyncDetail">Never synced</div>
-            </div>
-        </div>
-
-        <div class="status-card" id="conflictStatusCard">
-            <div class="card-icon">
-                <i class="fas fa-exclamation-triangle"></i>
-            </div>
-            <div class="card-content">
-                <h4>Conflicts</h4>
-                <div class="card-stats">
-                    <span class="stat-number" id="conflictCount">0</span>
-                    <span class="stat-label">issues</span>
-                </div>
-                <div class="card-detail" id="conflictStatus">No conflicts</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Real-time Activity Feed -->
-    <div class="activity-feed" id="activityFeed">
-        <h4>Recent Activity</h4>
-        <div class="feed-items" id="feedItems">
-            <div class="feed-item empty">
-                <i class="fas fa-info-circle"></i>
-                <span>No recent activity</span>
-            </div>
-        </div>
-    </div>
-</div>
 </body>
 </html>
