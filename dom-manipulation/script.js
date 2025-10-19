@@ -849,43 +849,7 @@ function resolveAllConflicts(version) {
 function showNotification(title, message, type = 'info', actions = []) {
     notificationTitle.textContent = title;
     notificationMessage.textContent = message;
-    
-    // Set type
-    notification.className = `notification ${type}`;
-    
-    // Clear previous actions
-    notificationActions.innerHTML = '';
-    
-    // Add new actions
-    actions.forEach(action => {
-        const button = document.createElement('button');
-        button.className = `notification-btn ${action.class}`;
-        button.textContent = action.text;
-        button.onclick = action.action;
-        notificationActions.appendChild(button);
-    });
-    
-    // Add close button if no actions
-    if (actions.length === 0) {
-        const closeButton = document.createElement('button');
-        closeButton.className = 'notification-btn secondary';
-        closeButton.textContent = 'Close';
-        closeButton.onclick = hideNotification;
-        notificationActions.appendChild(closeButton);
-    }
-    
-    notification.classList.add('show');
-    
-    // Auto-hide after 5 seconds if no actions
-    if (actions.length === 0) {
-        setTimeout(hideNotification, 5000);
-    }
-}
-
-function hideNotification() {
-    notification.classList.remove('show');
-}
-// STEP 5: Enhanced UI notifications for all sync events
+    // STEP 5: Enhanced UI notifications for all sync events
 function updateSyncUI(mergeResult, syncResult, manualSync = false) {
     const { conflicts, newQuotesCount, updatedQuotesCount, totalQuotes } = mergeResult;
     
@@ -1027,6 +991,41 @@ function updateUIAfterSync(newQuotesCount, updatedQuotesCount) {
     
     // Update storage stats
     updateStorageStats();
+}
+    // Set type
+    notification.className = `notification ${type}`;
+    
+    // Clear previous actions
+    notificationActions.innerHTML = '';
+    
+    // Add new actions
+    actions.forEach(action => {
+        const button = document.createElement('button');
+        button.className = `notification-btn ${action.class}`;
+        button.textContent = action.text;
+        button.onclick = action.action;
+        notificationActions.appendChild(button);
+    });
+    
+    // Add close button if no actions
+    if (actions.length === 0) {
+        const closeButton = document.createElement('button');
+        closeButton.className = 'notification-btn secondary';
+        closeButton.textContent = 'Close';
+        closeButton.onclick = hideNotification;
+        notificationActions.appendChild(closeButton);
+    }
+    
+    notification.classList.add('show');
+    
+    // Auto-hide after 5 seconds if no actions
+    if (actions.length === 0) {
+        setTimeout(hideNotification, 5000);
+    }
+}
+
+function hideNotification() {
+    notification.classList.remove('show');
 }
 // Sync Status Management
 function updateSyncStatus(status, text) {
