@@ -274,7 +274,420 @@ const syncStats = document.getElementById('syncStats');
 const serverQuoteCount = document.getElementById('serverQuoteCount');
 const localChangesCount = document.getElementById('localChangesCount');
 const conflictCount = document.getElementById('conflictCount');
+// Add this COMPREHENSIVE NOTIFICATION SYSTEM at the TOP of script.js - After DOM elements
 
+// DOM Elements for notifications - Add these to your existing DOM elements
+const mainNotification = document.getElementById('mainNotification');
+const notificationIcon = document.getElementById('notificationIcon');
+const notificationTitle = document.getElementById('notificationTitle');
+const notificationMessage = document.getElementById('notificationMessage');
+const notificationActions = document.getElementById('notificationActions');
+const notificationClose = document.getElementById('notificationClose');
+const syncToast = document.getElementById('syncToast');
+const toastIcon = document.getElementById('toastIcon');
+const toastTitle = document.getElementById('toastTitle');
+const toastMessage = document.getElementById('toastMessage');
+const syncProgress = document.getElementById('syncProgress');
+const conflictBanner = document.getElementById('conflictBanner');
+const conflictBannerTitle = document.getElementById('conflictBannerTitle');
+const conflictBannerMessage = document.getElementById('conflictBannerMessage');
+const resolveConflictsBtn = document.getElementById('resolveConflictsBtn');
+const dismissConflictBanner = document.getElementById('dismissConflictBanner');
+const updateBadge = document.getElementById('updateBadge');
+const loadUpdatesBtn = document.getElementById('loadUpdatesBtn');
+const localStatusCard = document.getElementById('localStatusCard');
+const serverStatusCard = document.getElementById('serverStatusCard');
+const conflictStatusCard = document.getElementById('conflictStatusCard');
+const localQuoteCount = document.getElementById('localQuoteCount');
+const localChangesCount = document.getElementById('localChangesCount');
+const serverQuoteCount = document.getElementById('serverQuoteCount');
+const lastSyncDetail = document.getElementById('lastSyncDetail');
+const conflictCount = document.getElementById('conflictCount');
+const conflictStatus = document.getElementById('conflictStatus');
+const activityFeed = document.getElementById('activityFeed');
+const feedItems = document.getElementById('feedItems');
+
+// Notification Manager Class - Add this after DOM elements
+class NotificationManager {
+    constructor() {
+        this.notificationQueue = [];
+        this.isShowingNotification = false;
+        this.activityLog = JSON.parse(localStorage.getItem('activityLog') || '[]');
+        this.init();
+    }
+
+    init() {
+        this.bindEvents();
+        this.loadActivityLog();
+        this.initializeStatusPanel();
+    }
+
+    bindEvents() {
+        // Notification close
+        notificationClose.addEventListener('click', () => {
+            this.hideMainNotification();
+        });
+
+        // Conflict banner actions
+        resolveConflictsBtn.addEventListener('click', () => {
+            this.hideConflictBanner();
+            showConflictResolution();
+        });
+
+        dismissConflictBanner.addEventListener('click', () => {
+            this.hideConflictBanner();
+        });
+
+        // Update badge
+        loadUpdatesBtn.addEventListener('click', () => {
+            this.hideUpdateBadge();
+            syncQuotes(true);
+        });
+
+        // Auto-hide notifications on click outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.notification') && !e.target.closest('.toast')) {
+                this.hideAllTemporaryNotifications();
+            }
+        });
+    }
+
+    initializeStatusPanel() {
+        this.updateStatusPanel({
+            localCount: quotes.length,
+            pendingChanges: quotes.filter(q => q.source === 'local').length,
+            serverCount: '0',
+            lastSync: 'Never',
+            conflictCount: conflicts.length
+        });
+    }
+
+    // Main notification methods
+    showMainNotification(title, message, type = 'info', actions = []) {
+        // Set type and icon
+        mainNotification.className = `notification ${type}`;
+        notificationIcon.className = this.getIconForType(type);
+        
+        // Set content
+        notificationTitle.textContent = title;
+        notificationMessage.textContent = message;
+        
+        // Set actions
+        this.setNotificationActions(actions);
+        
+        // Show notification
+        mainNotification.classList.add('show');
+        this.isShowingNotification = true;
+        
+        // Auto-hide if no actions
+        if (actions.length === 0) {
+            setTimeout(() => this.hideMainNotification(), 5000);
+        }
+        
+        this.logActivity('notification', `${type}: ${title}`);
+    }
+
+    hideMainNotification() {
+        mainNotification.classList.remove('show');
+        this.isShowingNotification = false;
+        
+        // Show next in queue
+        setTimeout(() => this.processQueue(), 300);
+    }
+
+    // Toast notification methods
+    showToast(title, message, type = 'info', duration = 4000) {
+        // Set type and icon
+        toastIcon.className = this.getIconForType(type);
+        
+        // Set content
+        toastTitle.textContent = title;
+        toastMessage.textContent = message;
+        
+        // Show toast
+        syncToast.classList.add('show');
+        
+        // Auto-hide
+        if (duration > 0) {
+            setTimeout(() => this.hideToast(), duration);
+        }
+        
+        this.logActivity('toast', `${type}: ${title}`);
+    }
+
+    hideToast() {
+        syncToast.classList.remove('show');
+    }
+
+    updateSyncProgress(percent) {
+        syncProgress.style.width = `${Math.max(0, Math.min(100, percent))}%`;
+    }
+
+    // Conflict banner methods
+    showConflictBanner(conflictCount) {
+        conflictBannerTitle.textContent = `Data Conflicts Detected (${conflictCount})`;
+        conflictBannerMessage.textContent = `${conflictCount} quotes have conflicting versions that need resolution`;
+        
+        conflictBanner.classList.add('show');
+        
+        this.logActivity('conflict', `${conflictCount} conflicts detected`);
+    }
+
+    hideConflictBanner() {
+        conflictBanner.classList.remove('show');
+    }
+
+    // Update badge methods
+    showUpdateBadge(updateCount) {
+        updateBadge.querySelector('span').textContent = `${updateCount} new quotes available`;
+        updateBadge.classList.add('show');
+        
+        this.logActivity('update', `${updateCount} new quotes available`);
+    }
+
+    hideUpdateBadge() {
+        updateBadge.classList.remove('show');
+    }
+
+    // Status panel updates
+    updateStatusPanel(stats) {
+        // Update local status
+        localQuoteCount.textContent = stats.localCount || quotes.length;
+        localChangesCount.textContent = `${stats.pendingChanges || 0} changes pending`;
+            
+        // Update server status
+        serverQuoteCount.textContent = stats.serverCount || '0';
+        lastSyncDetail.textContent = stats.lastSync || 'Never synced';
+            
+        // Update conflict status
+        conflictCount.textContent = stats.conflictCount || '0';
+        conflictStatus.textContent = (stats.conflictCount > 0) ? 'Needs resolution' : 'No conflicts';
+            
+        // Update card styles based on status
+        this.updateCardStyles(stats);
+    }
+
+    updateCardStyles(stats) {
+        // Reset all cards
+        [localStatusCard, serverStatusCard, conflictStatusCard].forEach(card => {
+            card.className = 'status-card';
+        });
+        
+        // Local card warning if changes pending
+        if (stats.pendingChanges > 0) {
+            localStatusCard.classList.add('warning');
+        }
+        
+        // Server card error if never synced
+        if (!stats.lastSync || stats.lastSync === 'Never synced') {
+            serverStatusCard.classList.add('error');
+        } else {
+            serverStatusCard.classList.add('success');
+        }
+        
+        // Conflict card warning if conflicts exist
+        if (stats.conflictCount > 0) {
+            conflictStatusCard.classList.add('warning');
+        } else {
+            conflictStatusCard.classList.add('success');
+        }
+    }
+
+    // Activity feed methods
+    logActivity(type, message, data = null) {
+        const activity = {
+            id: Date.now() + Math.random().toString(36).substr(2, 9),
+            type,
+            message,
+            timestamp: new Date().toISOString(),
+            data
+        };
+        
+        this.activityLog.unshift(activity);
+        
+        // Keep only last 50 activities
+        if (this.activityLog.length > 50) {
+            this.activityLog = this.activityLog.slice(0, 50);
+        }
+        
+        // Save to localStorage
+        localStorage.setItem('activityLog', JSON.stringify(this.activityLog));
+        
+        // Update UI
+        this.updateActivityFeed();
+        
+        return activity;
+    }
+
+    updateActivityFeed() {
+        const activities = this.activityLog.slice(0, 10); // Show last 10
+        
+        if (activities.length === 0) {
+            feedItems.innerHTML = `
+                <div class="feed-item empty">
+                    <i class="fas fa-info-circle"></i>
+                    <span>No recent activity</span>
+                </div>
+            `;
+            return;
+        }
+        
+        feedItems.innerHTML = activities.map(activity => `
+            <div class="feed-item ${activity.type}">
+                <i class="${this.getIconForType(activity.type)}"></i>
+                <span>${activity.message}</span>
+                <span class="feed-time">${this.formatTime(activity.timestamp)}</span>
+            </div>
+        `).join('');
+    }
+
+    loadActivityLog() {
+        this.updateActivityFeed();
+    }
+
+    // Utility methods
+    getIconForType(type) {
+        const icons = {
+            success: 'fas fa-check-circle',
+            error: 'fas fa-exclamation-circle',
+            warning: 'fas fa-exclamation-triangle',
+            info: 'fas fa-info-circle',
+            notification: 'fas fa-bell',
+            toast: 'fas fa-sync',
+            conflict: 'fas fa-exclamation-triangle',
+            update: 'fas fa-cloud-download-alt',
+            sync: 'fas fa-sync'
+        };
+        return icons[type] || 'fas fa-info-circle';
+    }
+
+    formatTime(timestamp) {
+        const date = new Date(timestamp);
+        const now = new Date();
+        const diffMs = now - date;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        
+        if (diffMins < 1) return 'Just now';
+        if (diffMins < 60) return `${diffMins}m ago`;
+        if (diffHours < 24) return `${diffHours}h ago`;
+        return date.toLocaleDateString();
+    }
+
+    setNotificationActions(actions) {
+        notificationActions.innerHTML = '';
+        
+        if (actions.length === 0) {
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'notification-btn secondary';
+            closeBtn.textContent = 'Close';
+            closeBtn.onclick = () => this.hideMainNotification();
+            notificationActions.appendChild(closeBtn);
+            return;
+        }
+        
+        actions.forEach(action => {
+            const button = document.createElement('button');
+            button.className = `notification-btn ${action.class || 'primary'}`;
+            button.textContent = action.text;
+            button.onclick = action.action;
+            notificationActions.appendChild(button);
+        });
+    }
+
+    hideAllTemporaryNotifications() {
+        this.hideToast();
+        this.hideUpdateBadge();
+    }
+
+    processQueue() {
+        if (this.notificationQueue.length > 0 && !this.isShowingNotification) {
+            const nextNotification = this.notificationQueue.shift();
+            this.showMainNotification(...nextNotification);
+        }
+    }
+
+    queueNotification(title, message, type = 'info', actions = []) {
+        this.notificationQueue.push([title, message, type, actions]);
+        if (!this.isShowingNotification) {
+            this.processQueue();
+        }
+    }
+
+    // Specific notification helpers for common scenarios
+    showSyncStart() {
+        this.showToast('Syncing', 'Connecting to server...', 'info', 0);
+        this.updateSyncProgress(10);
+    }
+
+    showSyncProgress(percent, message) {
+        this.updateSyncProgress(percent);
+        toastMessage.textContent = message;
+    }
+
+    showSyncComplete(stats) {
+        this.hideToast();
+        this.showToast('Sync Complete', `Synced ${stats.syncedCount} quotes`, 'success', 3000);
+        this.updateStatusPanel(stats);
+    }
+
+    showSyncError(error) {
+        this.hideToast();
+        this.showToast('Sync Failed', error.message, 'error', 5000);
+    }
+
+    showDataUpdated(updateCount) {
+        if (updateCount > 0) {
+            this.showUpdateBadge(updateCount);
+        }
+    }
+
+    showConflictsDetected(conflictCount) {
+        if (conflictCount > 0) {
+            this.showConflictBanner(conflictCount);
+            this.queueNotification(
+                'Data Conflicts Detected',
+                `Found ${conflictCount} quotes with conflicting versions between your device and the server.`,
+                'warning',
+                [
+                    {
+                        text: 'Resolve Now',
+                        action: () => {
+                            this.hideMainNotification();
+                            showConflictResolution();
+                        },
+                        class: 'primary'
+                    },
+                    {
+                        text: 'Later',
+                        action: () => this.hideMainNotification(),
+                        class: 'secondary'
+                    }
+                ]
+            );
+        }
+    }
+}
+
+// Initialize notification manager - Add this after the class definition
+const notificationManager = new NotificationManager();
+
+// Update existing notification functions to use the new manager
+function showNotification(title, message, type = 'info', actions = []) {
+    notificationManager.showMainNotification(title, message, type, actions);
+}
+
+function hideNotification() {
+    notificationManager.hideMainNotification();
+}
+
+function showToast(title, message, type = 'info', duration = 4000) {
+    notificationManager.showToast(title, message, type, duration);
+}
+
+function updateSyncProgress(percent) {
+    notificationManager.updateSyncProgress(percent);
+}
 // Add event listener for stop sync button
 stopSyncBtn.addEventListener('click', () => {
     stopPeriodicSync();
