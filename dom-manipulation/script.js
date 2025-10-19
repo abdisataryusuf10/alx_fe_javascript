@@ -161,7 +161,96 @@ async function syncQuotes(manualSync = false) {
         showNotification('Sync in Progress', 'Please wait for current sync to complete.', 'warning');
         return;
     }
+    // STEP 2: Enhanced syncQuotes function - Add this notification
+async function syncQuotes(manualSync = false) {
+    if (isSyncing) {
+        notificationManager.showToast('Sync in Progress', 'Please wait for current sync to complete.', 'warning');
+        return;
+    }
     
+    isSyncing = true;
+    notificationManager.showSyncStart();
+    
+    try {
+        const syncStartTime = Date.now();
+        
+        // Step 1: Try to sync pending quotes first
+        await syncPendingQuotes();
+        
+        // Step 2: Fetch latest from server
+        const serverQuotes = await fetchQuotesFromServer();
+        
+        // Step 3: Prepare local quotes for sync
+        const localQuotesToSync = quotes.filter(quote => 
+            quote.source === 'local' || 
+            !quote.lastSynced ||
+            (quote.updatedAt && quote.updatedAt > quote.lastSynced)
+        );
+        
+        // Step 4: Post local changes to server
+        let syncResult = { success: false, syncedCount: 0 };
+        if (localQuotesToSync.length > 0) {
+            syncResult = await postQuotesToServer(localQuotesToSync);
+            
+            // Mark quotes as synced
+            quotes.forEach(quote => {
+                if (localQuotesToSync.find(q => q.id === quote.id)) {
+                    quote.lastSynced = Date.now();
+                    quote.source = 'synced';
+                }
+            });
+        }
+        
+        // Step 5: Merge server quotes with local quotes
+        const mergeResult = mergeQuotesWithServer(quotes, serverQuotes);
+        quotes = mergeResult.mergedQuotes;
+        conflicts = mergeResult.conflicts;
+        
+        // Step 6: Save to local storage
+        saveQuotes();
+        
+        // STEP: ADD THIS NOTIFICATION FOR SUCCESSFUL SYNC
+        if (syncResult.success && mergeResult.conflicts.length === 0) {
+            notificationManager.showMainNotification(
+                'Sync Successful', 
+                'Quotes synced with server! All your data is now up to date.', 
+                'success',
+                [
+                    {
+                        text: 'View Quotes',
+                        action: () => {
+                            if (currentFilter === 'all') {
+                                generateRandomQuote();
+                            }
+                            notificationManager.hideMainNotification();
+                        },
+                        class: 'primary'
+                    },
+                    {
+                        text: 'Close',
+                        action: () => notificationManager.hideMainNotification(),
+                        class: 'secondary'
+                    }
+                ]
+            );
+        }
+        
+        // Step 7: Update sync statistics
+        updateSyncStatistics(mergeResult, syncResult, Date.now() - syncStartTime);
+        
+        // Step 8: Update UI and show notifications
+        updateSyncUI(mergeResult, syncResult, manualSync);
+        
+        notificationManager.updateSyncStatus('online', `Sync complete (${Date.now() - syncStartTime}ms)`);
+        
+    } catch (error) {
+        console.error('Sync failed:', error);
+        notificationManager.showSyncError(error);
+        notificationManager.updateSyncStatus('error', 'Sync failed');
+    } finally {
+        isSyncing = false;
+    }
+}
     isSyncing = true;
     updateSyncStatus('syncing', manualSync ? 'Manual sync in progress...' : 'Auto-syncing...');
     
@@ -315,7 +404,93 @@ class NotificationManager {
         this.activityLog = JSON.parse(localStorage.getItem('activityLog') || '[]');
         this.init();
     }
+// Add these methods to the NotificationManager class in script.js
+showDataUpdateNotification(updateType, count) {
+    const messages = {
+        new: `${count} new quotes added from server`,
+        updated: `${count} quotes updated from server`,
+        conflict: `${count} conflicts resolved`,
+        deleted: `${count} quotes removed`
+    };
+    
+    this.showToast('Data Updated', messages[updateType] || 'Data has been updated', 'success', 4000);
+}
 
+showServerSyncNotification(syncedCount, updateCount) {
+    let message = 'Quotes synced with server!';
+    
+    if (syncedCount > 0 && updateCount > 0) {
+        message = `Quotes synced with server! ${syncedCount} changes uploaded, ${updateCount} updates received.`;
+    } else if (syncedCount > 0) {
+        message = `Quotes synced with server! ${syncedCount} changes uploaded successfully.`;
+    } else if (updateCount > 0) {
+        message = `Quotes synced with server! ${updateCount} updates received.`;
+    }
+    
+    this.showMainNotification(
+        'Sync Complete',
+        message,
+        'success',
+        [
+            {
+                text: 'View Changes',
+                action: () => {
+                    if (currentFilter === 'all') {
+                        generateRandomQuote();
+                    }
+                    this.hideMainNotification();
+                },
+                class: 'primary'
+            },
+            {
+                text: 'Close',
+                action: () => this.hideMainNotification(),
+                class: 'secondary'
+            }
+        ]
+    );
+}
+
+showConflictAlert(conflictCount) {
+    this.showMainNotification(
+        'Data Conflicts Detected',
+        `Found ${conflictCount} conflicts between your local quotes and server data. Please review and resolve them to ensure data consistency.`,
+        'warning',
+        [
+            {
+                text: 'Resolve Conflicts',
+                action: () => {
+                    this.hideMainNotification();
+                    showConflictResolution();
+                },
+                class: 'primary'
+            },
+            {
+                text: 'View Details',
+                action: () => {
+                    this.hideMainNotification();
+                    // Show conflict details panel
+                    document.getElementById('conflictResolution').style.display = 'block';
+                },
+                class: 'secondary'
+            },
+            {
+                text: 'Ignore for Now',
+                action: () => this.hideMainNotification(),
+                class: 'secondary'
+            }
+        ]
+    );
+}
+
+showRealTimeUpdate(quote) {
+    this.showToast(
+        'New Quote Added',
+        `"${quote.text.substring(0, 50)}${quote.text.length > 50 ? '...' : ''}"`,
+        'info',
+        3000
+    );
+}
     init() {
         this.bindEvents();
         this.loadActivityLog();
@@ -936,6 +1111,72 @@ function saveQuotes() {
         updateSyncStatus('error', 'Sync failed');
         showNotification('Sync Failed', error.message, 'error');
     }
+    // Enhanced updateSyncUI function with specific notifications
+function updateSyncUI(mergeResult, syncResult, manualSync = false) {
+    const { conflicts, newQuotesCount, updatedQuotesCount, totalQuotes } = mergeResult;
+    
+    // Update last sync time
+    const now = new Date();
+    const lastSyncText = `Last sync: ${now.toLocaleTimeString()}`;
+    lastSyncTime.textContent = lastSyncText;
+    localStorage.setItem('lastSyncTime', now.toISOString());
+    
+    // Update sync statistics display
+    updateSyncStatsDisplay(newQuotesCount, updatedQuotesCount, conflicts.length);
+    
+    // Reset failed sync count on success
+    failedSyncCount = 0;
+    lastSyncAttempt = Date.now();
+    
+    // STEP: SHOW SPECIFIC NOTIFICATIONS BASED ON SYNC RESULTS
+    if (conflicts.length > 0) {
+        // Show conflict alert
+        notificationManager.showConflictAlert(conflicts.length);
+        notificationManager.showConflictBanner(conflicts.length);
+    } else if (newQuotesCount > 0 || updatedQuotesCount > 0) {
+        // Show success notification with specific message
+        notificationManager.showServerSyncNotification(syncResult.syncedCount, newQuotesCount + updatedQuotesCount);
+        
+        // Show individual update notifications
+        if (newQuotesCount > 0) {
+            notificationManager.showDataUpdateNotification('new', newQuotesCount);
+        }
+        if (updatedQuotesCount > 0) {
+            notificationManager.showDataUpdateNotification('updated', updatedQuotesCount);
+        }
+    } else if (syncResult.syncedCount > 0) {
+        // Show upload success with specific message
+        notificationManager.showMainNotification(
+            'Upload Successful',
+            'Quotes synced with server! Your changes have been uploaded successfully.',
+            'success',
+            [
+                {
+                    text: 'Continue',
+                    action: () => notificationManager.hideMainNotification(),
+                    class: 'primary'
+                }
+            ]
+        );
+    } else {
+        // Show no changes notification
+        notificationManager.showMainNotification(
+            'Sync Complete',
+            'Quotes synced with server! All data is already up to date.',
+            'info',
+            [
+                {
+                    text: 'OK',
+                    action: () => notificationManager.hideMainNotification(),
+                    class: 'primary'
+                }
+            ]
+        );
+    }
+    
+    // Update UI elements
+    updateUIAfterSync(newQuotesCount, updatedQuotesCount);
+}
 }
 // STEP 3: UI Updates - Add these functions
 function updateSyncUI(mergeResult) {
@@ -1068,7 +1309,176 @@ function mergeQuotesWithServer(localQuotes, serverQuotes) {
     serverQuoteMap.forEach(serverQuote => {
         mergedQuotes.push({ ...serverQuote, source: 'server' });
     });
+    // Enhanced addNewQuote function with real-time notification
+function addNewQuote() {
+    const text = newQuoteText.value.trim();
+    const author = newQuoteAuthor.value.trim();
+    const category = newQuoteCategory.value.trim() || "Uncategorized";
     
+    if (text && author) {
+        const newQuote = { 
+            text, 
+            author, 
+            category,
+            id: `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            timestamp: Date.now(),
+            source: 'local',
+            updatedAt: Date.now()
+        };
+        quotes.push(newQuote);
+        saveQuotes();
+        
+        // STEP: SHOW REAL-TIME NOTIFICATION FOR NEW QUOTE
+        notificationManager.showRealTimeUpdate(newQuote);
+        notificationManager.logActivity('add', `Added new quote: "${text.substring(0, 30)}..."`);
+        
+        // Update categories if this is a new category
+        if (!categories.includes(category)) {
+            populateCategories();
+        }
+        
+        // Update displayed quotes if we're viewing a specific category
+        if (currentFilter !== 'all') {
+            displayFilteredQuotes();
+        }
+        
+        // Reset form
+        newQuoteText.value = '';
+        newQuoteAuthor.value = '';
+        newQuoteCategory.value = '';
+        quoteForm.style.display = 'none';
+        
+        // Show success notification
+        notificationManager.showMainNotification(
+            'Quote Added', 
+            'Your quote has been saved locally and will be synced with the server.', 
+            'success',
+            [
+                {
+                    text: 'Add Another',
+                    action: () => {
+                        quoteForm.style.display = 'block';
+                        notificationManager.hideMainNotification();
+                    },
+                    class: 'primary'
+                },
+                {
+                    text: 'View Quote',
+                    action: () => {
+                        displayQuote(newQuote);
+                        notificationManager.hideMainNotification();
+                    },
+                    class: 'secondary'
+                }
+            ]
+        );
+        
+        // Display the new quote
+        displayQuote(newQuote);
+    } else {
+        notificationManager.showMainNotification(
+            'Error', 
+            'Please enter both quote text and author.', 
+            'error',
+            [
+                {
+                    text: 'OK',
+                    action: () => notificationManager.hideMainNotification(),
+                    class: 'primary'
+                }
+            ]
+        );
+    }
+}
+
+// Enhanced import function with notifications
+function importFromJsonFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const fileReader = new FileReader();
+    fileReader.onload = function(event) {
+        try {
+            const importedQuotes = JSON.parse(event.target.result);
+            
+            if (!Array.isArray(importedQuotes)) {
+                throw new Error("Invalid format: Expected an array of quotes");
+            }
+            
+            // Validate each quote has required properties
+            for (let quote of importedQuotes) {
+                if (!quote.text || !quote.author) {
+                    throw new Error("Invalid quote format: Each quote must have 'text' and 'author' properties");
+                }
+                
+                // Set default category if not provided
+                if (!quote.category) {
+                    quote.category = "Uncategorized";
+                }
+            }
+            
+            const previousCount = quotes.length;
+            quotes.push(...importedQuotes);
+            saveQuotes();
+            populateCategories(); // Update categories after import
+            displayFilteredQuotes(); // Update displayed quotes
+            
+            // STEP: SHOW IMPORT SUCCESS NOTIFICATION
+            const importedCount = quotes.length - previousCount;
+            notificationManager.showMainNotification(
+                'Import Successful',
+                `Successfully imported ${importedCount} quotes from file! Quotes synced with server on next sync.`,
+                'success',
+                [
+                    {
+                        text: 'View Quotes',
+                        action: () => {
+                            if (currentFilter === 'all') {
+                                generateRandomQuote();
+                            }
+                            notificationManager.hideMainNotification();
+                        },
+                        class: 'primary'
+                    },
+                    {
+                        text: 'Sync Now',
+                        action: () => {
+                            syncQuotes(true);
+                            notificationManager.hideMainNotification();
+                        },
+                        class: 'secondary'
+                    }
+                ]
+            );
+            
+            // Reset file input
+            importFile.value = '';
+            
+        } catch (error) {
+            notificationManager.showMainNotification(
+                'Import Failed',
+                `Error importing quotes: ${error.message}`,
+                'error',
+                [
+                    {
+                        text: 'Try Again',
+                        action: () => {
+                            importFile.click();
+                            notificationManager.hideMainNotification();
+                        },
+                        class: 'primary'
+                    },
+                    {
+                        text: 'Cancel',
+                        action: () => notificationManager.hideMainNotification(),
+                        class: 'secondary'
+                    }
+                ]
+            );
+        }
+    };
+    fileReader.readAsText(file);
+}
     return {
         mergedQuotes,
         conflicts,
